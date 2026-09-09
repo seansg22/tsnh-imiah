@@ -75,7 +75,7 @@ export interface KnowledgeEntry {
   content: string;   // Gemini-authored, dated summary of what happened/was discussed in a cleared Ask AI conversation
 }
 
-export type Page = 'onboarding' | 'today' | 'milestones' | 'insights' | 'growth' | 'settings' | 'book' | 'ai' | 'wonderweek' | 'babyprofile';
+export type Page = 'onboarding' | 'today' | 'milestones' | 'insights' | 'growth' | 'settings' | 'book' | 'ai' | 'wonderweek' | 'babyprofile' | 'food';
 
 export interface AppState {
   babyProfile: BabyProfile | null;

@@ -12,12 +12,12 @@ export interface AIResult {
 }
 
 /**
- * Calls OpenRouter first; if it fails (bad key, network error, rate limit,
- * etc. — anything that makes it return null), falls back to Gemini so the
+ * Calls Gemini first; if it fails (bad key, network error, rate limit,
+ * etc. — anything that makes it return null), falls back to OpenRouter so the
  * app still gets an answer instead of surfacing an error.
  *
  * `onStatus`, if given, is called with a user-facing message whenever this falls
- * back to Gemini, and again for each retry Gemini does internally. Callers should
+ * back to OpenRouter, and again for each retry Gemini does internally. Callers should
  * treat these as transient UI-only status text, not part of the conversation.
  */
 export async function callAI(
@@ -25,14 +25,14 @@ export async function callAI(
   messages: AIMessage[],
   onStatus?: (message: string) => void
 ): Promise<AIResult | null> {
-  const openRouterResult = await callOpenRouter(systemInstruction, messages);
-  if (openRouterResult) return openRouterResult;
-
-  console.warn('OpenRouter failed, falling back to Gemini');
-  onStatus?.('Having trouble getting a response, retrying...');
   const geminiContents: GeminiContent[] = messages.map(m => ({
     role: m.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: m.content }],
   }));
-  return callGemini(systemInstruction, geminiContents, onStatus);
+  const geminiResult = await callGemini(systemInstruction, geminiContents, onStatus);
+  if (geminiResult) return geminiResult;
+
+  console.warn('Gemini failed, falling back to OpenRouter');
+  onStatus?.('Having trouble getting a response, retrying...');
+  return callOpenRouter(systemInstruction, messages);
 }

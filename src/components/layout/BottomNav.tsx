@@ -1,4 +1,4 @@
-import { Home, Star, Sparkles, TrendingUp, Settings, BookOpenText, Baby, CalendarDays, Compass, UserRound } from 'lucide-react';
+import { Home, Star, Sparkles, TrendingUp, Settings, BookOpenText, Baby, CalendarDays, Compass, UserRound, Utensils } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../context/appStateContext';
 import { milestones } from '../../data/weeklyDevelopment';
@@ -8,6 +8,7 @@ import type { Page } from '../../types';
 const homeOptions: { page: Page; icon: React.ElementType; label: string }[] = [
   { page: 'today',    icon: Home,         label: 'Today'    },
   { page: 'insights', icon: Sparkles,     label: 'Insights' },
+  { page: 'food',     icon: Utensils,     label: 'Food'     },
   { page: 'wonderweek', icon: CalendarDays, label: 'Wonder Week' },
 ];
 
@@ -26,7 +27,7 @@ export function BottomNav() {
   const homeMenuRef = useRef<HTMLDivElement>(null);
 
   const isProgressActive = state.currentPage === 'milestones' || state.currentPage === 'growth' || state.currentPage === 'babyprofile';
-  const isHomeActive = state.currentPage === 'today' || state.currentPage === 'insights' || state.currentPage === 'wonderweek';
+  const isHomeActive = state.currentPage === 'today' || state.currentPage === 'insights' || state.currentPage === 'food' || state.currentPage === 'wonderweek';
   const { currentWeek } = useBabyAge(state.babyProfile?.birthDate ?? null);
   const unfinishedMilestones = milestones.filter(
     m => m.weekRange[1] <= currentWeek && !state.achievedMilestones.includes(m.id)

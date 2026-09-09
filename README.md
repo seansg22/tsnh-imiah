@@ -50,6 +50,8 @@ https://aistudio.google.com/u/1/api-keys?pli=1&project=gen-lang-client-004151541
 
 Login with: tson.regis@gmail.com
 
+Set `VITE_GEMINI_API_KEY` to one key, or multiple keys separated by commas.
+
 ### Open Router
 
 https://openrouter.ai/workspaces/default/keys

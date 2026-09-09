@@ -10,6 +10,7 @@ import { SettingsScreen } from './screens/Settings/SettingsScreen';
 import { BabyProfileScreen } from './screens/BabyProfile/BabyProfileScreen';
 import { GrowthScreen } from './screens/Growth/GrowthScreen';
 import { AIScreen } from './screens/AI/AIScreen';
+import { FoodScreen } from './screens/Food/FoodScreen';
 import { OverdueBanner } from './components/banners/OverdueBanner';
 import { ProfileUpdateBanner } from './components/banners/ProfileUpdateBanner';
 import { WonderWeekCalendar } from './components/milestones/WonderWeekCalendar';
@@ -63,6 +64,7 @@ function AppContent() {
     today: <TodayScreen />,
     milestones: <MilestonesScreen />,
     insights: <InsightsScreen />,
+    food: <FoodScreen />,
     growth: <GrowthScreen />,
     settings: <SettingsScreen />,
     babyprofile: <BabyProfileScreen />,
