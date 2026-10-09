@@ -97,4 +97,4 @@ export type AppAction =
   | { type: 'UPDATE_KNOWLEDGE_ENTRY'; payload: KnowledgeEntry }
   | { type: 'DELETE_KNOWLEDGE_ENTRY'; payload: string }
   | { type: 'SET_PAGE'; payload: Page }
-  | { type: 'IMPORT_DATA'; payload: { achievedMilestones: string[]; growthEntries: GrowthEntry[] } };
+  | { type: 'HYDRATE' };

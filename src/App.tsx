@@ -16,6 +16,7 @@ import { ProfileUpdateBanner } from './components/banners/ProfileUpdateBanner';
 import { WonderWeekCalendar } from './components/milestones/WonderWeekCalendar';
 import { milestones } from './data/weeklyDevelopment';
 import { useBabyAge } from './hooks/useBabyAge';
+import { useCloudSync } from './hooks/useCloudSync';
 import { DEFAULT_EDD } from './constants/babyDefaults';
 
 const BookScreen = lazy(() =>
@@ -24,6 +25,7 @@ const BookScreen = lazy(() =>
 
 function AppContent() {
   const { state, dispatch } = useApp();
+  useCloudSync();
   const { currentWeek } = useBabyAge(state.babyProfile?.birthDate ?? null);
   const achieved = new Set(state.achievedMilestones);
   const overdueCount = milestones.filter(m => m.weekRange[1] <= currentWeek && !achieved.has(m.id)).length;

@@ -2,6 +2,7 @@ import { useReducer, useEffect, type ReactNode } from 'react';
 import type { AppState, AppAction, BabyProfile, Page } from '../types';
 import { AppContext } from './appStateContext';
 import { DEFAULT_EDD } from '../constants/babyDefaults';
+import { APPLIED_EVENT } from '../lib/cloudSync';
 
 const initialState: AppState = {
   babyProfile: null,
@@ -46,8 +47,8 @@ function reducer(state: AppState, action: AppAction): AppState {
       return { ...state, knowledgeBase: state.knowledgeBase.filter(e => e.id !== action.payload) };
     case 'SET_PAGE':
       return { ...state, currentPage: action.payload };
-    case 'IMPORT_DATA':
-      return { ...state, achievedMilestones: action.payload.achievedMilestones, growthEntries: action.payload.growthEntries };
+    case 'HYDRATE': // cloud merge rewrote localStorage; keep this device's navigation state
+      return { ...loadState(), selectedWeek: state.selectedWeek, currentPage: state.currentPage };
     default:
       return state;
   }
@@ -86,6 +87,12 @@ function loadState(): AppState {
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, loadState);
+
+  useEffect(() => {
+    const onApplied = () => dispatch({ type: 'HYDRATE' });
+    window.addEventListener(APPLIED_EVENT, onApplied);
+    return () => window.removeEventListener(APPLIED_EVENT, onApplied);
+  }, []);
 
   useEffect(() => {
     if (state.babyProfile) {
