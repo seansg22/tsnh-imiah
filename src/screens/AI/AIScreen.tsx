@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Check, Copy, RefreshCw, Send, Sparkles, Trash2 } from 'lucide-react';
+import { ArrowLeft, Check, Copy, Info, RefreshCw, Send, Sparkles, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { differenceInWeeks, parseISO } from 'date-fns';
 import { useApp } from '../../context/appStateContext';
@@ -18,6 +18,11 @@ interface Message {
 }
 
 
+// How many earlier messages (user + AI) are sent along with the new one. 20 = 10 turns.
+// TODO: raise to 20 after testing.
+const MAX_CONTEXT_MESSAGES = 2;
+const MAX_INPUT_ROWS = 5;
+
 export function AIScreen() {
   const { state, dispatch } = useApp();
   const age = useBabyAge(state.babyProfile?.birthDate ?? null);
@@ -31,6 +36,7 @@ export function AIScreen() {
   const [streamingContent, setStreamingContent] = useState('');
   const streamIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -68,6 +74,19 @@ export function AIScreen() {
       vv.removeEventListener('scroll', update);
     };
   }, []);
+
+  // Grow the input with its content, up to MAX_INPUT_ROWS, then scroll inside it.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const cs = getComputedStyle(el);
+    const box = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+    const max = (parseFloat(cs.lineHeight) || 21) * MAX_INPUT_ROWS + box;
+    const full = el.scrollHeight + parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+    el.style.height = `${Math.min(full, max)}px`;
+    el.style.overflowY = full > max ? 'auto' : 'hidden';
+  }, [input]);
 
   async function send(override?: string) {
     const text = (override ?? input).trim();
@@ -138,7 +157,11 @@ Rules:
 - Use 3 to 5 bullets max unless user explicitly asks to be more comprehensive
 - Give practical, age-aware, gender-aware, measurement-aware guidance`;
 
-    const conversation = withUser.map(msg => ({
+    // Only the most recent messages go to the AI (the full chat stays stored and synced).
+    // The window must start with a user message, so drop a leading assistant reply.
+    const recent = messages.slice(-MAX_CONTEXT_MESSAGES);
+    if (recent[0]?.role === 'assistant') recent.shift();
+    const conversation = [...recent, withUser[withUser.length - 1]].map(msg => ({
       role: msg.role,
       content: msg.content,
     }));
@@ -256,7 +279,7 @@ Rules:
                 <div className="prose prose-sm prose-neutral max-w-none">
                   <ReactMarkdown>{msg.content}</ReactMarkdown>
                 </div>
-                <div className="mt-3 mb-2 flex items-center ml-6">
+                <div className="mt-3 mb-2 flex items-center">
                   <button
                     type="button"
                     onClick={() => {
@@ -302,6 +325,15 @@ Rules:
           </div>
         )}
 
+        {messages.length > MAX_CONTEXT_MESSAGES && !loading && !streamingContent && (
+          <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-orange-50 border border-peachLight">
+            <Info size={16} strokeWidth={2.2} className="mt-0.5 flex-shrink-0 text-peach" />
+            <p className="text-sm leading-relaxed text-app-text">
+              Long chats hurt AI quality and use up the budget faster. Clear the chat to start fresh.
+            </p>
+          </div>
+        )}
+
         <div ref={bottomRef} />
       </div>
 
@@ -310,34 +342,15 @@ Rules:
         className="flex-shrink-0 border-t border-black/5"
         style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
       >
-        <div className="flex items-center gap-2 overflow-x-auto px-4 pt-2 pb-2 no-scrollbar">
-          <span className="flex-shrink-0 text-xs text-textMuted font-medium">Explore</span>
-          {([
-            ['Feeding', 'Give me a comprehensive guide on feeding for her current age — appropriate foods, feeding schedule, portion sizes, what to avoid, and any tips for making feeding easier. Please be thorough.'],
-            ['Sleep', 'Give me a comprehensive breakdown of her sleep needs at this age — total hours, nap schedule, nighttime sleep, common sleep challenges, and practical tips to improve sleep quality. Please be thorough.'],
-            ['Growth', 'Give me a comprehensive assessment of her growth based on her age, gender, and latest measurements — whether she is on track, what the healthy ranges are, signs to watch for, and when to consult a doctor. Please be thorough.'],
-            ['Vaccine', 'Give me a comprehensive vaccination guide for her age — what she should have received so far, what is coming up next, the schedule, possible side effects, and how to prepare. Please be thorough.'],
-            ['Milestones', 'Give me a comprehensive developmental overview based on her age and achieved milestones — what she should be doing now, what to focus on next, activities to encourage development, and any red flags to watch for. Please be thorough.'],
-            ['Crying', 'Give me a comprehensive guide on why babies her age cry and how to soothe them — common causes, how to identify each, the most effective soothing techniques, and when to seek medical advice. Please be thorough.'],
-          ] as [string, string][]).map(([label, prompt]) => (
-            <button
-              key={label}
-              type="button"
-              onClick={() => send(prompt)}
-              className="flex-shrink-0 rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs text-app-text whitespace-nowrap active:bg-black/5"
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-end gap-2 px-4">
+        <div className="flex items-end gap-2 px-4 pt-3">
           <textarea
+            ref={inputRef}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask something..."
+            placeholder="I know about your kid, just ask..."
             rows={1}
-            className="flex-1 resize-none rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-app-text placeholder:text-textMuted focus:outline-none focus:ring-2 focus:ring-peach/40 max-h-32"
+            className="flex-1 resize-none rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-app-text placeholder:text-textMuted focus:outline-none focus:ring-2 focus:ring-peach/40"
             style={{ lineHeight: '1.5' }}
           />
           <button
