@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 /**
  * DateInput — custom date picker using three <select> elements.
  * Replaces <input type="date"> to avoid iOS Safari's native widget
@@ -60,19 +62,29 @@ export function DateInput({ value, onChange, min, max, compact }: DateInputProps
   const years: number[] = [];
   for (let y = maxYear; y >= minYear; y--) years.push(y);
 
-  const selectedYear = parsed?.year ?? 0;
-  const selectedMonth = parsed?.month ?? 0;
-  const selectedDay = parsed?.day ?? 0;
+  // Keep partial picks locally; parent only gets a value once all three parts are set.
+  const [parts, setParts] = useState({ year: parsed?.year ?? 0, month: parsed?.month ?? 0, day: parsed?.day ?? 0 });
+  const [prevValue, setPrevValue] = useState(value);
+  if (value !== prevValue) {
+    setPrevValue(value);
+    setParts({ year: parsed?.year ?? 0, month: parsed?.month ?? 0, day: parsed?.day ?? 0 });
+  }
+  const selectedYear = parts.year;
+  const selectedMonth = parts.month;
+  const selectedDay = parts.day;
 
   const dayCount = selectedYear && selectedMonth
     ? daysInMonth(selectedYear, selectedMonth)
     : 31;
 
   function emit(year: number, month: number, day: number) {
-    if (!year || !month || !day) return;
-    // Clamp day if month/year change makes it invalid
-    const maxDay = daysInMonth(year, month);
-    onChange(formatDate(year, month, Math.min(day, maxDay)));
+    const maxDay = year && month ? daysInMonth(year, month) : 31;
+    const clamped = day ? Math.min(day, maxDay) : 0;
+    setParts({ year, month, day: clamped });
+    if (!year || !month || !clamped) return;
+    const next = formatDate(year, month, clamped);
+    setPrevValue(next);
+    onChange(next);
   }
 
   const sizeClass = compact ? 'py-2 text-sm' : 'py-3 text-sm';
