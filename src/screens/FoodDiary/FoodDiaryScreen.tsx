@@ -44,8 +44,9 @@ export function FoodDiaryScreen() {
         </div>
         <button
           onClick={() => setShowAdvice(true)}
+          disabled={entries.length === 0}
           aria-label={t('ai.advice.open')}
-          className="flex-shrink-0 flex items-center gap-1.5 h-9 pl-3 pr-3.5 rounded-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500 text-white text-xs font-extrabold shadow-md shadow-fuchsia-300/50 active:scale-95 transition-transform"
+          className="flex-shrink-0 disabled:opacity-40 disabled:shadow-none disabled:active:scale-100 flex items-center gap-1.5 h-9 pl-3 pr-3.5 rounded-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500 text-white text-xs font-extrabold shadow-md shadow-fuchsia-300/50 active:scale-95 transition-transform"
         >
           <Sparkles size={16} strokeWidth={2.5} />
           {t('ai.title')}

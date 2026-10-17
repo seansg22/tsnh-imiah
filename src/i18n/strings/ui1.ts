@@ -163,7 +163,7 @@ export const ui1 = defineStrings(
     'ins.current': 'Tuần hiện tại',
     'ins.browsing': 'Đang xem · về hiện tại',
     'growth.title': 'Tăng trưởng',
-    'growth.subtitle': 'Theo dõi cân nặng, chiều dài và vòng đầu',
+    'growth.subtitle': 'Cân nặng, chiều dài và vòng đầu',
     'growth.metric.weight': 'Cân nặng',
     'growth.metric.length': 'Chiều dài',
     'growth.metric.head': 'Vòng đầu',
