@@ -107,7 +107,7 @@ export function BottomNav() {
         {/* Nav bar */}
         <div className="relative bg-white border-t border-peachLight flex items-center h-16">
           {/* Left: Home + Progress */}
-          <div className="flex flex-1 justify-start gap-3 pl-3 relative z-20">
+          <div className="flex flex-1 justify-around relative z-20">
             <div ref={homeMenuRef} className="relative flex flex-col items-center">
               {showHome && (
                 <div className="popup-appear absolute bottom-full mb-2 left-0 flex flex-col items-center gap-1 bg-white border border-peachLight rounded-2xl shadow-lg py-2 px-1 min-w-[140px]">
@@ -187,7 +187,7 @@ export function BottomNav() {
           <div className="w-16 flex-shrink-0" />
 
           {/* Right tabs: Mom + Settings */}
-          <div className="flex flex-1 justify-end gap-3 pr-3 relative z-20">
+          <div className="flex flex-1 justify-around relative z-20">
             <button
               onClick={() => navigate('mom')}
               className={`flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-semibold transition-colors ${
