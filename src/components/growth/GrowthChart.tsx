@@ -26,7 +26,7 @@ type View = { start: number; end: number };
 
 const W = 320;
 const H = 210;
-const PAD = { top: 12, right: 48, bottom: 30, left: 40 };
+const PAD = { top: 12, right: 50, bottom: 34, left: 34 };
 const CHART_W = W - PAD.left - PAD.right;
 const CHART_H = H - PAD.top - PAD.bottom;
 const MIN_SPAN = 8;
@@ -35,7 +35,6 @@ const RANGES = [
   { key: 'chart.months', n: 3, weeks: 13 },
   { key: 'chart.months', n: 6, weeks: 26 },
   { key: 'chart.years', n: 1, weeks: 52 },
-  { key: 'chart.years', n: 2, weeks: 104 },
 ] as const;
 
 const PREFS_KEY = 'baby-day:growth-chart';
@@ -191,8 +190,9 @@ export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
     gesture.current.dist = 0;
   }
 
-  const pill = (active: boolean) =>
-    `px-2.5 py-1 rounded-full text-xs font-bold transition-all ${active ? 'bg-peach text-white' : 'bg-warm text-textMuted'}`;
+  // compact pills share the row width equally so the whole row always fits
+  const pill = (active: boolean, compact = false) =>
+    `${compact ? 'flex-1 px-1' : 'px-2.5'} py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all ${active ? 'bg-peach text-white' : 'bg-warm text-textMuted'}`;
 
   return (
     <div>
@@ -277,7 +277,7 @@ export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
             key={l.id}
             x={PAD.left + CHART_W + 3}
             y={toY(l.at(view.end))}
-            fontSize="9"
+            fontSize="11"
             fill="#9B7B6E"
             dominantBaseline="middle"
           >
@@ -289,7 +289,7 @@ export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
         {yTicks.map((v, i) => (
           <g key={i}>
             <line x1={PAD.left - 3} y1={toY(v)} x2={PAD.left} y2={toY(v)} stroke="#9B7B6E" strokeWidth="0.8" />
-            <text x={PAD.left - 5} y={toY(v)} fontSize="10" fill="#9B7B6E" textAnchor="end" dominantBaseline="middle">
+            <text x={PAD.left - 5} y={toY(v)} fontSize="12" fill="#9B7B6E" textAnchor="end" dominantBaseline="middle">
               {Math.round(v * 10) / 10}
             </text>
           </g>
@@ -299,7 +299,7 @@ export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
         {xTicks.map(tk => (
           <g key={tk.week}>
             <line x1={toX(tk.week)} y1={PAD.top + CHART_H} x2={toX(tk.week)} y2={PAD.top + CHART_H + 3} stroke="#9B7B6E" strokeWidth="0.8" />
-            <text x={toX(tk.week)} y={PAD.top + CHART_H + 13} fontSize="10" fill="#9B7B6E" textAnchor="middle">
+            <text x={toX(tk.week)} y={PAD.top + CHART_H + 15} fontSize="12" fill="#9B7B6E" textAnchor="middle">
               {tk.label}
             </text>
           </g>
@@ -314,7 +314,7 @@ export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
         {RANGES.map(r => (
           <button
             key={r.weeks}
-            className={pill(Math.abs(view.end - view.start - r.weeks) < 0.5)}
+            className={pill(Math.abs(view.end - view.start - r.weeks) < 0.5, true)}
             onClick={() => {
               setView(centered(r.weeks));
               savePrefs({ weeks: r.weeks });
@@ -323,7 +323,7 @@ export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
             {t(r.key, { n: r.n })}
           </button>
         ))}
-        <button className={`${pill(false)} ml-auto`} onClick={() => setView(centered(view.end - view.start))}>
+        <button className={pill(false, true)} onClick={() => setView(centered(view.end - view.start))}>
           {t('chart.today')}
         </button>
       </div>

@@ -73,7 +73,7 @@ export function GrowthScreen() {
           <button
             key={m}
             onClick={() => setActiveMetric(m)}
-            className={`flex-1 py-2 rounded-full text-xs font-bold transition-all ${
+            className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
               activeMetric === m ? 'bg-peach text-white' : 'bg-warm text-textMuted'
             }`}
           >
@@ -154,7 +154,7 @@ export function GrowthScreen() {
                             {m === 'weight' ? `${val} kg` : m === 'length' ? `${val} cm` : t('growth.headVal', { n: val })}
                           </span>
                           {st && (
-                            <p className={`text-xs ${st.p > 97 ? 'text-red-500 font-bold' : st.p < 3 ? 'text-purple-500 font-bold' : 'text-app-text'}`}>
+                            <p className={`text-xs ${st.p > 97 ? 'text-red-500 font-bold' : st.p < 3 ? 'text-purple-500 font-bold' : 'text-green-600'}`}>
                               P{Math.round(st.p)}
                             </p>
                           )}
