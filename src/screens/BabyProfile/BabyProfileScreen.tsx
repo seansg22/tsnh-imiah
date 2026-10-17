@@ -17,7 +17,7 @@ function toggle<T>(list: T[], value: T, keepOne = false): T[] {
 
 function CheckRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) {
   return (
-    <label className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-cream border-2 border-peachLight text-sm font-bold text-app-text cursor-pointer transition-colors has-[:checked]:border-peach has-[:checked]:bg-peachLight/40 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-peach/40">
+    <label className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-cream border-2 border-peachLight text-sm font-bold text-app-text cursor-pointer transition-colors has-[:checked]:bg-peachLight/40 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-peach/40">
       <input type="checkbox" checked={checked} onChange={onChange} className="peer sr-only" />
       <span className="w-5 h-5 shrink-0 flex items-center justify-center rounded-md border-2 border-peachLight bg-white text-transparent transition-colors peer-checked:bg-peach peer-checked:border-peach peer-checked:text-white">
         <Check size={14} strokeWidth={3.5} />

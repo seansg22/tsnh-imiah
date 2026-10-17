@@ -1,4 +1,4 @@
-import { Home, Star, Sparkles, TrendingUp, Settings, BookOpenText, Baby, CalendarDays, Compass, UserRound, Utensils, Milk } from 'lucide-react';
+import { Home, Star, Sparkles, TrendingUp, Settings, Baby, CalendarDays, Compass, UserRound, Utensils, Milk, Heart } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../context/appStateContext';
 import { useLang } from '../../i18n/langContext';
@@ -7,23 +7,10 @@ import { milestones } from '../../data/weeklyDevelopment';
 import { useBabyAge } from '../../hooks/useBabyAge';
 import type { Page } from '../../types';
 
-// Daisy (G-Dragon style): filled center, 6 rounded petals with gaps so it stays crisp at small size
-function DaisyIcon({ size = 22, strokeWidth = 1.8 }: { size?: number; strokeWidth?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth * 0.7} strokeLinecap="round" strokeLinejoin="round">
-      {Array.from({ length: 6 }, (_, i) => (
-        <ellipse key={i} cx="12" cy="5.6" rx="2.6" ry="3.4" transform={`rotate(${i * 60} 12 12)`} />
-      ))}
-      <circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
 const homeOptions: { page: Page; icon: React.ElementType; label: UiKey }[] = [
   { page: 'today',    icon: Home,         label: 'nav.today'    },
   { page: 'insights', icon: Sparkles,     label: 'nav.insights' },
   { page: 'food',     icon: Utensils,     label: 'nav.food'     },
-  { page: 'book',     icon: BookOpenText, label: 'nav.read'     },
 ];
 
 const progressOptions: { page: Page; icon: React.ElementType; label: UiKey }[] = [
@@ -43,7 +30,7 @@ export function BottomNav() {
   const homeMenuRef = useRef<HTMLDivElement>(null);
 
   const isProgressActive = state.currentPage === 'milestones' || state.currentPage === 'growth' || state.currentPage === 'fooddiary' || state.currentPage === 'babyprofile' || state.currentPage === 'wonderweek';
-  const isHomeActive = state.currentPage === 'today' || state.currentPage === 'insights' || state.currentPage === 'food' || state.currentPage === 'book';
+  const isHomeActive = state.currentPage === 'today' || state.currentPage === 'insights' || state.currentPage === 'food';
   const { currentWeek } = useBabyAge(state.babyProfile?.birthDate ?? null);
   const unfinishedMilestones = milestones.filter(
     m => m.weekRange[1] <= currentWeek && !state.achievedMilestones.includes(m.id)
@@ -195,7 +182,7 @@ export function BottomNav() {
                 state.currentPage === 'mom' ? 'text-peachDark' : 'text-textMuted'
               }`}
             >
-              <DaisyIcon size={22} strokeWidth={state.currentPage === 'mom' ? 2.5 : 1.8} />
+              <Heart size={22} strokeWidth={state.currentPage === 'mom' ? 2.5 : 1.8} />
               <span>{t('nav.mom')}</span>
             </button>
 

@@ -4,8 +4,6 @@ import { getCareTips, getSoothingLabel } from './careTips';
 import { getCareTipsVi, getSoothingLabelVi } from './vi/careTips';
 import { momStages, painAreas, type MomStage, type PainArea } from './momCare';
 import { momStagesVi, painAreasVi } from './vi/momCare';
-import { bookChapters } from './bookChapters';
-import { bookChapterTitlesVi } from './vi/bookChapters';
 
 export function getLocalizedCareTips(week: number, lang: Lang): CareTips {
   return lang === 'vi' ? getCareTipsVi(week) : getCareTips(week);
@@ -32,9 +30,4 @@ const painAreasViFull: Record<string, PainArea> = Object.fromEntries(
 
 export function getPainAreas(lang: Lang): Record<string, PainArea> {
   return lang === 'vi' ? painAreasViFull : painAreas;
-}
-
-export function getLocalizedChapterTitle(chapter: number, lang: Lang): string {
-  if (lang === 'vi') return bookChapterTitlesVi[chapter] ?? bookChapters.find(c => c.chapter === chapter)?.title ?? '';
-  return bookChapters.find(c => c.chapter === chapter)?.title ?? '';
 }

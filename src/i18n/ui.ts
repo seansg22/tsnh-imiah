@@ -9,7 +9,6 @@ import { fd } from './strings/fd';
 
 // en is the source of truth: vi must have exactly the same keys (checked by tsc)
 const baseEn = {
-  'app.loadingBook': 'Loading book...',
   'settings.title': 'Settings',
   'settings.profile': 'Baby Profile',
   'settings.profileHint': 'Used to personalize guidance in Ask AI.',
@@ -59,7 +58,6 @@ const baseEn = {
 };
 
 const baseVi: Record<keyof typeof baseEn, string> = {
-  'app.loadingBook': 'Đang mở sách cho mẹ...',
   'settings.title': 'Cài đặt',
   'settings.profile': 'Hồ sơ của bé',
   'settings.profileHint': 'Giúp Hỏi AI gợi ý đúng với bé nhà mình hơn nhé.',

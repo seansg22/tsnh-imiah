@@ -92,7 +92,7 @@ export interface FoodEntry {
   portion?: string; // chip key (spoons|quarter|half|whole) or free text
 }
 
-export type Page = 'onboarding' | 'today' | 'milestones' | 'insights' | 'growth' | 'settings' | 'book' | 'ai' | 'wonderweek' | 'babyprofile' | 'food' | 'mom' | 'fooddiary';
+export type Page = 'onboarding' | 'today' | 'milestones' | 'insights' | 'growth' | 'settings' | 'ai' | 'wonderweek' | 'babyprofile' | 'food' | 'mom' | 'fooddiary';
 
 export interface AppState {
   babyProfile: BabyProfile | null;

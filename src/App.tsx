@@ -1,7 +1,6 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { useEffect } from 'react';
 import { AppProvider } from './context/AppContext.tsx';
 import { LanguageProvider } from './i18n/LanguageProvider';
-import { useLang } from './i18n/langContext';
 import { useApp } from './context/appStateContext';
 import { AppShell } from './components/layout/AppShell';
 import { OnboardingScreen } from './screens/Onboarding/OnboardingScreen';
@@ -24,13 +23,8 @@ import { useBabyAge } from './hooks/useBabyAge';
 import { useCloudSync } from './hooks/useCloudSync';
 import { DEFAULT_EDD } from './constants/babyDefaults';
 
-const BookScreen = lazy(() =>
-  import('./screens/Book/BookScreen').then((module) => ({ default: module.BookScreen })),
-);
-
 function AppContent() {
   const { state, dispatch } = useApp();
-  const { t } = useLang();
   useCloudSync();
   const { currentWeek } = useBabyAge(state.babyProfile?.birthDate ?? null);
   const achieved = new Set(state.achievedMilestones);
@@ -52,20 +46,6 @@ function AppContent() {
 
   if (state.currentPage === 'ai') {
     return <AIScreen />;
-  }
-
-  if (state.currentPage === 'book') {
-    return (
-      <Suspense
-        fallback={
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-cream text-sm font-extrabold text-textMuted">
-            {t('app.loadingBook')}
-          </div>
-        }
-      >
-        <BookScreen />
-      </Suspense>
-    );
   }
 
   const pages: Record<string, React.ReactNode> = {
