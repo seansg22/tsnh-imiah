@@ -15,6 +15,14 @@ export const aiStrings = defineStrings(
     'ai.placeholder': 'I know about your kid, just ask...',
     'ai.send': 'Send',
     'ai.theBaby': 'the baby',
+    'ai.advice.title': 'AI advice',
+    'ai.advice.open': 'Ask AI for advice',
+    'ai.advice.close': 'Close',
+    'ai.advice.again': 'Ask again',
+    'ai.advice.updated': 'Updated {date}',
+    'ai.advice.step1': 'Reading the data...',
+    'ai.advice.step2': 'Thinking it through...',
+    'ai.advice.step3': 'Writing your advice...',
   },
   {
     'ai.retrying': 'Mạng hơi chậm, mình đang thử lại nhé...',
@@ -30,5 +38,13 @@ export const aiStrings = defineStrings(
     'ai.placeholder': 'Mình biết về bé rồi, mẹ cứ hỏi nhé...',
     'ai.send': 'Gửi',
     'ai.theBaby': 'bé',
+    'ai.advice.title': 'Lời khuyên từ AI',
+    'ai.advice.open': 'Hỏi AI xin lời khuyên',
+    'ai.advice.close': 'Đóng',
+    'ai.advice.again': 'Hỏi lại',
+    'ai.advice.updated': 'Cập nhật {date}',
+    'ai.advice.step1': 'Mình đang xem số liệu của bé...',
+    'ai.advice.step2': 'Mình đang suy nghĩ chút nha...',
+    'ai.advice.step3': 'Sắp xong rồi, đợi mình xíu nhé...',
   }
 );

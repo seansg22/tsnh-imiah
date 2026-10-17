@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Plus, Trash2, Pencil } from 'lucide-react';
+import { Plus, Trash2, Pencil, Sparkles } from 'lucide-react';
 import { parseISO, differenceInWeeks, differenceInDays } from 'date-fns';
+import { AdviceModal } from '../../components/ai/AdviceModal';
 import { useLang } from '../../i18n/langContext';
 import { formatDate } from '../../i18n/date';
 import { useApp } from '../../context/appStateContext';
@@ -15,6 +16,7 @@ export function GrowthScreen() {
   const { t, lang } = useLang();
   const { state, dispatch } = useApp();
   const [activeMetric, setActiveMetric] = useState<GrowthMetric>('weight');
+  const [showAdvice, setShowAdvice] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState<GrowthEntry | null>(null);
 
@@ -60,11 +62,21 @@ export function GrowthScreen() {
 
   return (
     <div className="fade-in">
-      <div className="px-4 pt-6 pb-4">
-        <h1 className="text-2xl font-extrabold text-app-text">{t('growth.title')}</h1>
-        <p className="text-textMuted text-sm font-medium mt-1">
-          {t('growth.subtitle')}
-        </p>
+      <div className="px-4 pt-6 pb-4 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold text-app-text">{t('growth.title')}</h1>
+          <p className="text-textMuted text-sm font-medium mt-1">
+            {t('growth.subtitle')}
+          </p>
+        </div>
+        <button
+          onClick={() => setShowAdvice(true)}
+          aria-label={t('ai.advice.open')}
+          className="flex-shrink-0 flex items-center gap-1.5 h-9 pl-3 pr-3.5 rounded-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500 text-white text-xs font-extrabold shadow-md shadow-fuchsia-300/50 active:scale-95 transition-transform"
+        >
+          <Sparkles size={16} strokeWidth={2.5} />
+          {t('ai.title')}
+        </button>
       </div>
 
       {/* Metric tabs */}
@@ -182,6 +194,7 @@ export function GrowthScreen() {
       )}
 
       <div className="pb-6" />
+      {showAdvice && <AdviceModal kind="growth" onClose={() => setShowAdvice(false)} />}
     </div>
   );
 }
