@@ -1,4 +1,4 @@
-import { Moon, Milk, Zap, CirclePlay, Star, ExternalLink } from 'lucide-react';
+import { Moon, Milk, Zap, Star } from 'lucide-react';
 import type { Activity, WeekData } from '../../types';
 
 // Playlist: "Your Baby's Development, Week by Week" — week 43 is missing in the playlist
@@ -83,6 +83,16 @@ function getActivityYoutubeUrl(activity: Activity, week: number): string {
 
 
 
+// lucide-react has no brand icons, so inline the YouTube logo
+function YouTubeLogo() {
+  return (
+    <svg width="20" height="14" viewBox="0 0 24 17" className="flex-shrink-0 mt-1" aria-hidden="true">
+      <rect width="24" height="17" rx="4.5" fill="#FF0000" />
+      <path d="M9.5 4.8v7.4L16 8.5z" fill="#fff" />
+    </svg>
+  );
+}
+
 export function WhatToExpectSection({ week, data }: WhatToExpectSectionProps) {
   return (
     <div className="px-4 py-4">
@@ -136,27 +146,22 @@ export function WhatToExpectSection({ week, data }: WhatToExpectSectionProps) {
               <Zap size={16} strokeWidth={2} className="text-peach" />
               <p className="font-bold text-app-text">Activities</p>
             </div>
-            <div className="space-y-3">
+            <div className="divide-y divide-peach/20">
               {data.activities.map(a => (
-                <div key={a.id} className="flex gap-3 items-start">
-                  <CirclePlay size={22} strokeWidth={1.5} className="text-peachDark flex-shrink-0 mt-0.5" />
-                  <div className="min-w-0">
+                <a
+                  key={a.id}
+                  href={getActivityYoutubeUrl(a, week)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex gap-2.5 items-start py-2.5 first:pt-0 last:pb-0 active:opacity-70"
+                  aria-label={`Open YouTube videos for ${a.title}`}
+                >
+                  <YouTubeLogo />
+                  <div className="min-w-0 flex-1">
                     <p className="font-semibold text-app-text text-sm">{a.title}</p>
-                    <p className="text-textMuted text-xs leading-relaxed">{a.description}</p>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      <a
-                        href={getActivityYoutubeUrl(a, week)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-extrabold text-red-500"
-                        aria-label={`Open YouTube videos for ${a.title}`}
-                      >
-                        YouTube
-                        <ExternalLink size={12} strokeWidth={2.2} />
-                      </a>
-                    </div>
+                    <p className="text-textMuted text-xs leading-snug">{a.description}</p>
                   </div>
-                </div>
+                </a>
               ))}
             </div>
           </div>

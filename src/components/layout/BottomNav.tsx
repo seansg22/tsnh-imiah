@@ -9,14 +9,13 @@ const homeOptions: { page: Page; icon: React.ElementType; label: string }[] = [
   { page: 'today',    icon: Home,         label: 'Today'    },
   { page: 'insights', icon: Sparkles,     label: 'Insights' },
   { page: 'food',     icon: Utensils,     label: 'Food'     },
-  { page: 'wonderweek', icon: CalendarDays, label: 'Wonder Week' },
 ];
-
 
 const progressOptions: { page: Page; icon: React.ElementType; label: string }[] = [
   { page: 'babyprofile', icon: UserRound,  label: 'Baby Profile' },
   { page: 'milestones',  icon: Star,       label: 'Milestones'   },
   { page: 'growth',      icon: TrendingUp, label: 'Growth'       },
+  { page: 'wonderweek',  icon: CalendarDays, label: 'Wonder Week' },
 ];
 
 export function BottomNav() {
@@ -26,8 +25,8 @@ export function BottomNav() {
   const menuRef = useRef<HTMLDivElement>(null);
   const homeMenuRef = useRef<HTMLDivElement>(null);
 
-  const isProgressActive = state.currentPage === 'milestones' || state.currentPage === 'growth' || state.currentPage === 'babyprofile';
-  const isHomeActive = state.currentPage === 'today' || state.currentPage === 'insights' || state.currentPage === 'food' || state.currentPage === 'wonderweek';
+  const isProgressActive = state.currentPage === 'milestones' || state.currentPage === 'growth' || state.currentPage === 'babyprofile' || state.currentPage === 'wonderweek';
+  const isHomeActive = state.currentPage === 'today' || state.currentPage === 'insights' || state.currentPage === 'food';
   const { currentWeek } = useBabyAge(state.babyProfile?.birthDate ?? null);
   const unfinishedMilestones = milestones.filter(
     m => m.weekRange[1] <= currentWeek && !state.achievedMilestones.includes(m.id)

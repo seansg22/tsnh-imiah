@@ -5,9 +5,7 @@ import { useBabyAge } from '../../hooks/useBabyAge';
 import { getWeekData } from '../../data/weeklyDevelopment';
 import { getCareTips, getSoothingLabel } from '../../data/careTips';
 import { WeekStrip } from '../../components/today/WeekStrip';
-import { BabyIllustration } from '../../components/today/BabyIllustration';
 import { AgeDisplay } from '../../components/today/AgeDisplay';
-import { InsightCardCarousel } from '../../components/today/InsightCardCarousel';
 import { WhatToExpectSection } from '../../components/today/WhatToExpectSection';
 import { CareTipsSection } from '../../components/today/CareTipsSection';
 
@@ -56,22 +54,14 @@ export function TodayScreen() {
         />
       </div>
 
-      {/* Baby illustration */}
-      <BabyIllustration week={selectedWeek} />
-
       {/* Age display */}
-      <AgeDisplay name={state.babyProfile?.name ?? ''} weeks={weeks} days={days} years={years} remainingWeeks={remainingWeeks} selectedWeek={selectedWeek} currentWeek={currentWeek} />
-
-      {/* Daily insights */}
-      <div className="mt-4">
-        <InsightCardCarousel week={selectedWeek} data={weekData} />
+      <div className="pt-6">
+        <AgeDisplay name={state.babyProfile?.name ?? ''} weeks={weeks} days={days} years={years} remainingWeeks={remainingWeeks} selectedWeek={selectedWeek} currentWeek={currentWeek} />
       </div>
+
 
       {/* What to expect */}
       <WhatToExpectSection week={selectedWeek} data={weekData} />
-
-      {/* Care guide */}
-      <CareTipsSection tips={careTips} soothingLabel={soothingLabel} parentTip={weekData.parentTip} />
 
       {/* Did you know */}
       {weekData.funFact && (
@@ -83,6 +73,9 @@ export function TodayScreen() {
           <p className="text-sm text-textMuted leading-relaxed">{weekData.funFact}</p>
         </div>
       )}
+
+      {/* Care guide */}
+      <CareTipsSection tips={careTips} soothingLabel={soothingLabel} parentTip={weekData.parentTip} />
 
       </div>
 

@@ -35,10 +35,10 @@ export function AgeDisplay({ name, weeks, days, years, remainingWeeks, selectedW
     : formatBrowseWeek(selectedWeek);
 
   return (
-    <div className="text-center px-4 pb-2 mb-8">
+    <div className="text-center px-4 pb-2 mb-5">
       <p className="text-2xl font-extrabold text-peachDark">{ageText}</p>
       <p className="text-textMuted text-sm font-semibold mt-0.5">
-        {isCurrent ? `${name}'s journey` : 'Browsing'}
+        {isCurrent ? `Our little ${name}, growing sweeter every day` : 'Peeking at another week'}
       </p>
     </div>
   );

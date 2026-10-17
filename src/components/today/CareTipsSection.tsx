@@ -37,33 +37,33 @@ export function CareTipsSection({ tips, soothingLabel, parentTip }: CareTipsSect
       </div>
 
       <div className="mt-4">
-        {/* Tab pills — 2×2 grid */}
-        <div className="grid grid-cols-2 gap-2 mb-4">
+        {/* Tabs: one row, icon above label */}
+        <div className="grid grid-cols-4 gap-1.5 mb-3">
           {tabConfig.map(({ key, label, Icon, color, activeBg }) => (
             <button
               key={key}
               onClick={() => setActiveTab(key)}
-              className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold border transition-all ${
+              className={`flex flex-col items-center gap-1 py-2 px-1 rounded-xl text-[11px] font-bold border transition-all ${
                 activeTab === key
-                  ? `${activeBg} border-opacity-100`
+                  ? activeBg
                   : 'bg-warm border-transparent text-textMuted'
               }`}
             >
-              <Icon size={14} strokeWidth={2} className={activeTab === key ? color : 'text-textMuted'} />
-              <span className={activeTab === key ? 'text-app-text' : ''}>{label(soothingLabel)}</span>
+              <Icon size={16} strokeWidth={2} className={activeTab === key ? color : 'text-textMuted'} />
+              <span className={`max-w-full truncate ${activeTab === key ? 'text-app-text' : ''}`}>{label(soothingLabel)}</span>
             </button>
           ))}
         </div>
 
-        {/* Tips list */}
-        <div className="space-y-2">
+        {/* Tips: one card, divided list */}
+        <ul className="bg-white rounded-xl shadow-sm divide-y divide-warm">
           {items.map((tip, i) => (
-            <div key={i} className="flex gap-3 items-start bg-white rounded-xl p-3 shadow-sm">
-              <active.Icon size={16} strokeWidth={1.8} className={`${active.color} flex-shrink-0 mt-0.5`} />
-              <p className="text-sm text-app-text leading-relaxed">{tip}</p>
-            </div>
+            <li key={i} className="flex gap-2.5 items-start px-3 py-2.5">
+              <span className={`${active.color} mt-[7px] w-1.5 h-1.5 rounded-full bg-current flex-shrink-0`} />
+              <p className="text-sm text-app-text leading-snug">{tip}</p>
+            </li>
           ))}
-        </div>
+        </ul>
 
         {/* Parent tip */}
         {parentTip && (
