@@ -48,7 +48,8 @@ function valueClass(selected: number) {
 
 export function DateInput({ value, onChange, min, max, compact }: DateInputProps) {
   const { t, lang } = useLang();
-  const monthNames = Array.from({ length: 12 }, (_, i) => formatLocaleDate(new Date(2000, i, 1), 'MMMM', lang));
+  const monthNames = Array.from({ length: 12 }, (_, i) => formatLocaleDate(new Date(2000, i, 1), 'MMMM', lang))
+    .map(n => n.charAt(0).toUpperCase() + n.slice(1)); // vi locale gives lowercase "tháng 04"
   const parsed = parseDate(value);
   const minParsed = parseDate(min ?? '');
   const maxParsed = parseDate(max ?? '');

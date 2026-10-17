@@ -1,3 +1,4 @@
+import { getFeeding } from '../../constants/babyDefaults';
 import { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Check, Copy, Info, RefreshCw, Send, Sparkles, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -122,19 +123,15 @@ export function AIScreen() {
       .map(m => `- [${m.category}] ${m.label}`);
     const milestonesLine = achievedLabels.join(', ')
 
-    const feedingLabel: Record<string, string> = {
-      breast: 'breastfeeding',
-      bottle: 'bottle-feeding with expressed breast milk',
-      formula: 'formula feeding',
-    };
+    const feeding = getFeeding(baby);
+    const milkLabel = { mom: "mom's breast milk", formula: 'formula' };
+    const wayLabel = { direct: 'directly from the breast', bottle: 'bottle' };
+    const waysText = [...feeding.ways.map(w => wayLabel[w]), feeding.other.trim()].filter(Boolean).join(', ');
+    const feedingLines = `- Milk: ${feeding.milk.map(m => milkLabel[m]).join(' + ')}${feeding.milk.length > 1 && feeding.milkNotes.trim() ? ` (how they are rotated: ${feeding.milkNotes.trim()})` : ''}${waysText ? `\n- Fed by: ${waysText}` : ''}`;
 
     const solidsLine = baby.solidsStartDate
       ? `Started solids ${differenceInWeeks(new Date(), parseISO(baby.solidsStartDate))} weeks ago (on ${baby.solidsStartDate})`
       : 'Not started solids yet';
-
-    const formulaSwitchLine = baby.feedingMethod === 'formula' && baby.formulaSwitchDate
-      ? `\n- Switched from breast milk to formula ${differenceInWeeks(new Date(), parseISO(baby.formulaSwitchDate))} weeks ago (on ${baby.formulaSwitchDate})`
-      : '';
 
     const notesLine = baby.notes?.trim() ? `\n- Parent's notes: ${baby.notes.trim()}` : '';
 
@@ -149,7 +146,7 @@ Baby:
 - Name: ${baby.name}
 - Age: ${age.weeks} weeks
 - Gender: ${baby.gender}
-- Feeding method: ${feedingLabel[baby.feedingMethod ?? 'breast']}${formulaSwitchLine}
+${feedingLines}
 - Solids: ${solidsLine}${measurementsLine ? `\n- Latest measurements: ${measurementsLine}` : ''}${milestonesLine ? `\n- Achieved milestones: ${milestonesLine}` : ''}${notesLine}${historyLine ? `\n\nKnown history about ${baby.name} from past conversations:\n${historyLine}` : ''}
 
 Rules:

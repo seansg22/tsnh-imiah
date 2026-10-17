@@ -1,13 +1,18 @@
 export type FeedingMethod = 'breast' | 'bottle' | 'formula';
+export type MilkType = 'mom' | 'formula';
+export type FeedingWay = 'direct' | 'bottle';
 
 export interface BabyProfile {
   name: string;
   birthDate: string; // ISO "YYYY-MM-DD"
   gender: 'girl' | 'boy';
-  feedingMethod?: FeedingMethod;
+  feedingMethod?: FeedingMethod; // legacy single choice; still written (derived) so older clients can read it
+  milkTypes?: MilkType[]; // what baby drinks (multi-select); read via getFeeding(), which falls back to feedingMethod
+  milkNotes?: string; // free text on how the different milks are rotated; only kept when 2+ milkTypes
+  feedingWays?: FeedingWay[]; // how baby is fed (multi-select)
+  feedingWayOther?: string; // free text for any other way
   edd?: string; // ISO "YYYY-MM-DD" — estimated due date, used to calculate Wonder Weeks
   solidsStartDate?: string; // ISO "YYYY-MM-DD" — when baby started solids/weaning; unset = not started yet
-  formulaSwitchDate?: string; // ISO "YYYY-MM-DD" — when baby switched from breast milk to formula; only relevant when feedingMethod is 'formula'
   notes?: string; // free-text notes from the parent, fed into the Ask AI system prompt
 }
 

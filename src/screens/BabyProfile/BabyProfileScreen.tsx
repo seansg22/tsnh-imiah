@@ -6,8 +6,26 @@ import { useLang } from '../../i18n/langContext';
 import { formatDate } from '../../i18n/date';
 import { TextInput } from '../../components/shared/TextInput';
 import { DateInput } from '../../components/shared/DateInput';
-import { DEFAULT_EDD } from '../../constants/babyDefaults';
-import type { FeedingMethod, KnowledgeEntry } from '../../types';
+import { DEFAULT_EDD, getFeeding, toLegacyMethod } from '../../constants/babyDefaults';
+import type { FeedingWay, KnowledgeEntry, MilkType } from '../../types';
+
+// Add or remove a value; `keepOne` stops the last one from being removed.
+function toggle<T>(list: T[], value: T, keepOne = false): T[] {
+  if (!list.includes(value)) return [...list, value];
+  return keepOne && list.length === 1 ? list : list.filter(v => v !== value);
+}
+
+function CheckRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) {
+  return (
+    <label className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-cream border-2 border-peachLight text-sm font-bold text-app-text cursor-pointer transition-colors has-[:checked]:border-peach has-[:checked]:bg-peachLight/40 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-peach/40">
+      <input type="checkbox" checked={checked} onChange={onChange} className="peer sr-only" />
+      <span className="w-5 h-5 shrink-0 flex items-center justify-center rounded-md border-2 border-peachLight bg-white text-transparent transition-colors peer-checked:bg-peach peer-checked:border-peach peer-checked:text-white">
+        <Check size={14} strokeWidth={3.5} />
+      </span>
+      {label}
+    </label>
+  );
+}
 
 export function BabyProfileScreen() {
   const { state, dispatch } = useApp();
@@ -16,9 +34,12 @@ export function BabyProfileScreen() {
   const [birthDate, setBirthDate] = useState(state.babyProfile?.birthDate ?? '');
   const [edd, setEdd] = useState(state.babyProfile?.edd ?? DEFAULT_EDD);
   const [solidsStartDate, setSolidsStartDate] = useState(state.babyProfile?.solidsStartDate ?? '');
-  const [formulaSwitchDate, setFormulaSwitchDate] = useState(state.babyProfile?.formulaSwitchDate ?? '');
   const [gender, setGender] = useState<'girl' | 'boy'>(state.babyProfile?.gender ?? 'girl');
-  const [feedingMethod, setFeedingMethod] = useState<FeedingMethod>(state.babyProfile?.feedingMethod ?? 'breast');
+  const initialFeeding = state.babyProfile ? getFeeding(state.babyProfile) : { milk: ['mom'] as MilkType[], ways: [] as FeedingWay[], other: '', milkNotes: '' };
+  const [milkTypes, setMilkTypes] = useState<MilkType[]>(initialFeeding.milk);
+  const [milkNotes, setMilkNotes] = useState(initialFeeding.milkNotes);
+  const [feedingWays, setFeedingWays] = useState<FeedingWay[]>(initialFeeding.ways);
+  const [feedingWayOther, setFeedingWayOther] = useState(initialFeeding.other);
   const [notes, setNotes] = useState(state.babyProfile?.notes ?? '');
 
   const [editingKnowledgeId, setEditingKnowledgeId] = useState<string | null>(null);
@@ -60,16 +81,19 @@ export function BabyProfileScreen() {
           name: name.trim(),
           birthDate,
           gender,
-          feedingMethod,
+          feedingMethod: toLegacyMethod(milkTypes, feedingWays),
+          milkTypes,
+          milkNotes: milkTypes.length > 1 ? milkNotes : '',
+          feedingWays,
+          feedingWayOther,
           edd: edd || DEFAULT_EDD,
           solidsStartDate,
-          formulaSwitchDate: feedingMethod === 'formula' ? formulaSwitchDate : '',
           notes,
         },
       });
     }, 400);
     return () => clearTimeout(timeout);
-  }, [name, birthDate, edd, solidsStartDate, formulaSwitchDate, gender, feedingMethod, notes, dispatch]);
+  }, [name, birthDate, edd, solidsStartDate, gender, milkTypes, milkNotes, feedingWays, feedingWayOther, notes, dispatch]);
 
   return (
     <div className="fade-in px-4 pt-6 pb-8">
@@ -111,42 +135,50 @@ export function BabyProfileScreen() {
           <p className="text-[11px] text-textMuted mt-1">{t('bp.eddHint')}</p>
         </div>
         <div>
-          <p className="text-xs font-semibold text-textMuted mb-1 uppercase tracking-wide">{t('bp.feeding')}</p>
-          <div className="flex gap-1.5">
-            {([
-              ['breast', t('bp.breast')],
-              ['bottle', t('bp.bottle')],
-              ['formula', t('bp.formula')],
-            ] as [FeedingMethod, string][]).map(([value, label]) => (
-              <button
+          <p className="text-xs font-semibold text-textMuted mb-1 uppercase tracking-wide">{t('bp.milk')}</p>
+          <div className="space-y-1.5">
+            {([['mom', t('bp.momMilk')], ['formula', t('bp.formula')]] as [MilkType, string][]).map(([value, label]) => (
+              <CheckRow
                 key={value}
-                onClick={() => setFeedingMethod(value)}
-                className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all border-2 ${feedingMethod === value
-                  ? 'bg-peach text-white border-peach'
-                  : 'bg-cream text-textMuted border-peachLight'
-                }`}
-              >
-                {label}
-              </button>
+                label={label}
+                checked={milkTypes.includes(value)}
+                onChange={() => setMilkTypes(prev => toggle(prev, value, true))}
+              />
             ))}
           </div>
+          {milkTypes.length > 1 && (
+            <textarea
+              value={milkNotes}
+              onChange={e => setMilkNotes(e.target.value)}
+              rows={2}
+              aria-label={t('bp.milkNotes')}
+              placeholder={t('bp.milkNotesPh')}
+              className="w-full mt-1.5 text-sm bg-cream rounded-xl px-4 py-3 resize-none text-app-text border-2 border-peachLight focus:border-peach outline-none transition-colors placeholder:text-textMuted/50"
+            />
+          )}
         </div>
-        {feedingMethod === 'formula' && (
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <p className="text-xs font-semibold text-textMuted uppercase tracking-wide">{t('bp.formulaSwitch')}</p>
-              {formulaSwitchDate && (
-                <button onClick={() => setFormulaSwitchDate('')} className="text-[11px] font-semibold text-peachDark">
-                  {t('bp.clear')}
-                </button>
-              )}
-            </div>
-            <DateInput value={formulaSwitchDate} min={birthDate} max={today} onChange={setFormulaSwitchDate} compact />
-            <p className="text-[11px] text-textMuted mt-1">
-              {t('bp.formulaSwitchHint')}
-            </p>
+        <div>
+          <p className="text-xs font-semibold text-textMuted mb-1 uppercase tracking-wide">{t('bp.feeding')}</p>
+          <div className="space-y-1.5">
+            {([['direct', t('bp.direct')], ['bottle', t('bp.bottle')]] as [FeedingWay, string][]).map(([value, label]) => (
+              <CheckRow
+                key={value}
+                label={label}
+                checked={feedingWays.includes(value)}
+                onChange={() => setFeedingWays(prev => toggle(prev, value))}
+              />
+            ))}
+            <textarea
+              value={feedingWayOther}
+              onChange={e => setFeedingWayOther(e.target.value)}
+              rows={2}
+              aria-label={t('bp.otherWay')}
+              placeholder={t('bp.otherWayPh')}
+              className="w-full text-sm bg-cream rounded-xl px-4 py-3 resize-none text-app-text border-2 border-peachLight focus:border-peach outline-none transition-colors placeholder:text-textMuted/50"
+            />
           </div>
-        )}
+          <p className="text-[11px] text-textMuted mt-1">{t('bp.feedingHint')}</p>
+        </div>
         <div>
           <div className="flex items-center justify-between mb-1">
             <p className="text-xs font-semibold text-textMuted uppercase tracking-wide">{t('bp.solids')}</p>
