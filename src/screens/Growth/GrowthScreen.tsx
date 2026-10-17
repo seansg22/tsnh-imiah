@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Plus, Trash2, Pencil } from 'lucide-react';
-import { parseISO, differenceInWeeks } from 'date-fns';
+import { parseISO, differenceInWeeks, differenceInDays } from 'date-fns';
 import { useLang } from '../../i18n/langContext';
 import { formatDate } from '../../i18n/date';
 import { useApp } from '../../context/appStateContext';
 import { GrowthChart } from '../../components/growth/GrowthChart';
 import { GrowthEntryForm } from '../../components/growth/GrowthEntryForm';
-import { type GrowthMetric, metricConfig } from '../../data/whoGrowthData';
+import { type GrowthMetric, metricConfig, zScoreOf, percentileOfZ, MAX_WEEK } from '../../data/whoGrowthData';
 import type { GrowthEntry } from '../../types';
 
 const metrics: GrowthMetric[] = ['weight', 'length', 'head'];
@@ -48,6 +48,14 @@ export function GrowthScreen() {
 
   const cfg = metricConfig[activeMetric];
 
+  function statOf(entry: GrowthEntry, m: GrowthMetric) {
+    const val = entry[m];
+    const week = differenceInDays(parseISO(entry.date), parseISO(birthDate)) / 7;
+    if (val === undefined || !birthDate || week < 0 || week > MAX_WEEK) return null;
+    const z = zScoreOf(m, week, gender, val);
+    return { p: percentileOfZ(z) };
+  }
+
   const entriesForMetric = entries.filter(e => e[activeMetric] !== undefined);
 
   return (
@@ -81,9 +89,9 @@ export function GrowthScreen() {
             <p className="text-sm font-bold text-app-text">
               {t(`growth.metric.${activeMetric}`)} ({cfg.unit})
             </p>
-            <span className="text-xs text-textMuted">{t('growth.who')}</span>
+            <span className="text-xs text-textMuted">{t('growth.who')} · {t(gender === 'boy' ? 'bp.boy' : 'bp.girl')}</span>
           </div>
-          <GrowthChart entries={entries} metric={activeMetric} birthDate={birthDate} gender={gender} />
+          <GrowthChart key={activeMetric} entries={entries} metric={activeMetric} birthDate={birthDate} gender={gender} />
           {entriesForMetric.length === 0 && (
             <p className="text-xs text-textMuted text-center mt-3">
               {t('growth.noData', { metric: t(`growth.metricLower.${activeMetric}`) })}
@@ -135,22 +143,24 @@ export function GrowthScreen() {
                   {ageWeeks !== null && ageWeeks >= 0 && (
                     <p className="text-xs text-textMuted">{t('growth.weekN', { n: ageWeeks })}</p>
                   )}
-                  <div className="flex gap-3 mt-1 flex-wrap">
-                    {entry.weight !== undefined && (
-                      <span className="text-xs text-app-text font-semibold">
-                        {entry.weight} kg
-                      </span>
-                    )}
-                    {entry.length !== undefined && (
-                      <span className="text-xs text-app-text font-semibold">
-                        {entry.length} cm
-                      </span>
-                    )}
-                    {entry.head !== undefined && (
-                      <span className="text-xs text-app-text font-semibold">
-                        {t('growth.headVal', { n: entry.head })}
-                      </span>
-                    )}
+                  <div className="flex gap-4 mt-1 flex-wrap">
+                    {metrics.map(m => {
+                      const val = entry[m];
+                      if (val === undefined) return null;
+                      const st = statOf(entry, m);
+                      return (
+                        <div key={m}>
+                          <span className="text-xs text-app-text font-semibold">
+                            {m === 'weight' ? `${val} kg` : m === 'length' ? `${val} cm` : t('growth.headVal', { n: val })}
+                          </span>
+                          {st && (
+                            <p className={`text-xs ${st.p > 97 ? 'text-red-500 font-bold' : st.p < 3 ? 'text-purple-500 font-bold' : 'text-app-text'}`}>
+                              P{Math.round(st.p)}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
                 <button
