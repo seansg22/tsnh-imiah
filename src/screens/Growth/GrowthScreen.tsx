@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Plus, Trash2, Pencil } from 'lucide-react';
-import { format, parseISO, differenceInWeeks } from 'date-fns';
+import { parseISO, differenceInWeeks } from 'date-fns';
+import { useLang } from '../../i18n/langContext';
+import { formatDate } from '../../i18n/date';
 import { useApp } from '../../context/appStateContext';
 import { GrowthChart } from '../../components/growth/GrowthChart';
 import { GrowthEntryForm } from '../../components/growth/GrowthEntryForm';
@@ -10,6 +12,7 @@ import type { GrowthEntry } from '../../types';
 const metrics: GrowthMetric[] = ['weight', 'length', 'head'];
 
 export function GrowthScreen() {
+  const { t, lang } = useLang();
   const { state, dispatch } = useApp();
   const [activeMetric, setActiveMetric] = useState<GrowthMetric>('weight');
   const [showForm, setShowForm] = useState(false);
@@ -50,9 +53,9 @@ export function GrowthScreen() {
   return (
     <div className="fade-in">
       <div className="px-4 pt-6 pb-4">
-        <h1 className="text-2xl font-extrabold text-app-text">Growth</h1>
+        <h1 className="text-2xl font-extrabold text-app-text">{t('growth.title')}</h1>
         <p className="text-textMuted text-sm font-medium mt-1">
-          Track weight, length &amp; head circumference
+          {t('growth.subtitle')}
         </p>
       </div>
 
@@ -66,7 +69,7 @@ export function GrowthScreen() {
               activeMetric === m ? 'bg-peach text-white' : 'bg-warm text-textMuted'
             }`}
           >
-            {metricConfig[m].label}
+            {t(`growth.metric.${m}`)}
           </button>
         ))}
       </div>
@@ -76,14 +79,14 @@ export function GrowthScreen() {
         <div className="mx-4 bg-white rounded-2xl p-4 shadow-sm mb-4">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-bold text-app-text">
-              {cfg.label} ({cfg.unit})
+              {t(`growth.metric.${activeMetric}`)} ({cfg.unit})
             </p>
-            <span className="text-xs text-textMuted">WHO reference</span>
+            <span className="text-xs text-textMuted">{t('growth.who')}</span>
           </div>
           <GrowthChart entries={entries} metric={activeMetric} birthDate={birthDate} gender={gender} />
           {entriesForMetric.length === 0 && (
             <p className="text-xs text-textMuted text-center mt-3">
-              No {cfg.label.toLowerCase()} data yet — add your first measurement!
+              {t('growth.noData', { metric: t(`growth.metricLower.${activeMetric}`) })}
             </p>
           )}
         </div>
@@ -106,7 +109,7 @@ export function GrowthScreen() {
             className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-peachLight text-peachDark text-sm font-bold hover:bg-peachLight/30 transition-colors"
           >
             <Plus size={18} strokeWidth={2.5} />
-            Add Measurement
+            {t('growth.add')}
           </button>
         )}
       </div>
@@ -114,7 +117,7 @@ export function GrowthScreen() {
       {/* Entry list */}
       {entries.length > 0 && (
         <div className="px-4 space-y-2">
-          <p className="text-xs font-bold text-textMuted uppercase tracking-wide mb-1">History</p>
+          <p className="text-xs font-bold text-textMuted uppercase tracking-wide mb-1">{t('growth.history')}</p>
           {[...entries].sort((a, b) => b.date.localeCompare(a.date)).map(entry => {
             const ageWeeks = birthDate
               ? differenceInWeeks(parseISO(entry.date), parseISO(birthDate))
@@ -127,10 +130,10 @@ export function GrowthScreen() {
               >
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-app-text">
-                    {format(parseISO(entry.date), 'dd MMM yyyy')}
+                    {formatDate(parseISO(entry.date), 'dd MMM yyyy', lang)}
                   </p>
                   {ageWeeks !== null && ageWeeks >= 0 && (
-                    <p className="text-xs text-textMuted">Week {ageWeeks}</p>
+                    <p className="text-xs text-textMuted">{t('growth.weekN', { n: ageWeeks })}</p>
                   )}
                   <div className="flex gap-3 mt-1 flex-wrap">
                     {entry.weight !== undefined && (
@@ -145,7 +148,7 @@ export function GrowthScreen() {
                     )}
                     {entry.head !== undefined && (
                       <span className="text-xs text-app-text font-semibold">
-                        Head {entry.head} cm
+                        {t('growth.headVal', { n: entry.head })}
                       </span>
                     )}
                   </div>

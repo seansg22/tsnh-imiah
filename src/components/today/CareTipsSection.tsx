@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Milk, Moon, HandHeart, ShieldCheck, Heart } from 'lucide-react';
 import type { CareTips } from '../../types';
+import { useLang } from '../../i18n/langContext';
+import type { UiKey } from '../../i18n/ui';
 
 type Tab = 'feeding' | 'sleep' | 'soothing' | 'health';
 
@@ -12,18 +14,19 @@ interface CareTipsSectionProps {
 
 const tabConfig: {
   key: Tab;
-  label: (s: string) => string;
+  label: UiKey | null;
   Icon: React.FC<{ size?: number; strokeWidth?: number; className?: string }>;
   color: string;
   activeBg: string;
 }[] = [
-  { key: 'feeding',  label: () => 'Feeding',  Icon: Milk,        color: 'text-blue-400',   activeBg: 'bg-blue-50 border-blue-200'     },
-  { key: 'sleep',    label: () => 'Sleep',     Icon: Moon,        color: 'text-indigo-400', activeBg: 'bg-indigo-50 border-indigo-200' },
-  { key: 'soothing', label: (s) => s,          Icon: HandHeart,   color: 'text-peachDark',  activeBg: 'bg-peachLight border-peachLight'},
-  { key: 'health',   label: () => 'Health',    Icon: ShieldCheck, color: 'text-green-500',  activeBg: 'bg-green-50 border-green-200'   },
+  { key: 'feeding',  label: 'careTips.feeding', Icon: Milk,        color: 'text-blue-400',   activeBg: 'bg-blue-50 border-blue-200'     },
+  { key: 'sleep',    label: 'careTips.sleep',  Icon: Moon,        color: 'text-indigo-400', activeBg: 'bg-indigo-50 border-indigo-200' },
+  { key: 'soothing', label: null,  Icon: HandHeart,   color: 'text-peachDark',  activeBg: 'bg-peachLight border-peachLight'},
+  { key: 'health',   label: 'careTips.health',  Icon: ShieldCheck, color: 'text-green-500',  activeBg: 'bg-green-50 border-green-200'   },
 ];
 
 export function CareTipsSection({ tips, soothingLabel, parentTip }: CareTipsSectionProps) {
+  const { t } = useLang();
   const [activeTab, setActiveTab] = useState<Tab>('feeding');
 
   const active = tabConfig.find(t => t.key === activeTab)!;
@@ -33,7 +36,7 @@ export function CareTipsSection({ tips, soothingLabel, parentTip }: CareTipsSect
     <section className="px-4 pb-4">
       <div className="flex items-center gap-2">
         <Heart size={16} strokeWidth={2} className="text-peachDark" />
-        <p className="text-base font-extrabold text-app-text">Care guide</p>
+        <p className="text-base font-extrabold text-app-text">{t('careTips.title')}</p>
       </div>
 
       <div className="mt-4">
@@ -50,7 +53,7 @@ export function CareTipsSection({ tips, soothingLabel, parentTip }: CareTipsSect
               }`}
             >
               <Icon size={16} strokeWidth={2} className={activeTab === key ? color : 'text-textMuted'} />
-              <span className={`max-w-full truncate ${activeTab === key ? 'text-app-text' : ''}`}>{label(soothingLabel)}</span>
+              <span className={`max-w-full truncate ${activeTab === key ? 'text-app-text' : ''}`}>{label ? t(label) : soothingLabel}</span>
             </button>
           ))}
         </div>
@@ -70,7 +73,7 @@ export function CareTipsSection({ tips, soothingLabel, parentTip }: CareTipsSect
           <div className="mt-4 bg-orange-100 rounded-xl p-3">
             <div className="flex items-center gap-1.5 mb-1.5">
               <Heart size={13} strokeWidth={2} className="text-peachDark" />
-              <p className="text-xs font-bold uppercase tracking-wide text-peachDark">Tip</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-peachDark">{t('careTips.tip')}</p>
             </div>
             <p className="text-sm text-app-text leading-relaxed">{parentTip}</p>
           </div>

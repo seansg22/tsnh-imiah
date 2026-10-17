@@ -2,25 +2,30 @@ import { useEffect, useState } from 'react';
 import { Users, ChevronLeft, ChevronRight, Heart, Dumbbell, Brain, Stethoscope, Activity, TriangleAlert, Check } from 'lucide-react';
 import { useApp } from '../../context/appStateContext';
 import { useBabyAge } from '../../hooks/useBabyAge';
-import { getMomStage, momStages, painAreas } from '../../data/momCare';
+import { getLocalizedMomStage, getMomStages, getPainAreas } from '../../data/localizedCare';
+import { useLang } from '../../i18n/langContext';
+import type { UiKey } from '../../i18n/ui';
 
 type Tab = 'pain' | 'exercise' | 'mind' | 'dad' | 'doctor';
 
-const tabs: { key: Tab; label: string; Icon: React.ElementType; on: string }[] = [
-  { key: 'pain',     label: 'Pain',     Icon: Activity,    on: 'bg-peachLight text-peachDark' },
-  { key: 'exercise', label: 'Move',     Icon: Dumbbell,    on: 'bg-peachLight text-peachDark' },
-  { key: 'mind',     label: 'Mind',     Icon: Brain,       on: 'bg-peachLight text-peachDark' },
-  { key: 'dad',      label: 'Dad',      Icon: Users,       on: 'bg-peachLight text-peachDark' },
-  { key: 'doctor',   label: 'Doctor',   Icon: Stethoscope, on: 'bg-peachLight text-peachDark' },
+const tabs: { key: Tab; label: UiKey; Icon: React.ElementType; on: string }[] = [
+  { key: 'pain',     label: 'mom.tabPain',     Icon: Activity,    on: 'bg-peachLight text-peachDark' },
+  { key: 'exercise', label: 'mom.tabMove',     Icon: Dumbbell,    on: 'bg-peachLight text-peachDark' },
+  { key: 'mind',     label: 'mom.tabMind',     Icon: Brain,       on: 'bg-peachLight text-peachDark' },
+  { key: 'dad',      label: 'mom.tabDad',      Icon: Users,       on: 'bg-peachLight text-peachDark' },
+  { key: 'doctor',   label: 'mom.tabDoctor',   Icon: Stethoscope, on: 'bg-peachLight text-peachDark' },
 ];
 
 export function MomScreen() {
   const { state, dispatch } = useApp();
+  const { t, lang } = useLang();
+  const momStages = getMomStages(lang);
+  const painAreas = getPainAreas(lang);
   const { weeks, days, currentWeek } = useBabyAge(state.babyProfile?.birthDate ?? null);
   const selectedWeek = state.selectedWeek;
-  const stage = getMomStage(selectedWeek);
+  const stage = getLocalizedMomStage(selectedWeek, lang);
   const stageIndex = momStages.indexOf(stage);
-  const nowIndex = momStages.indexOf(getMomStage(currentWeek));
+  const nowIndex = momStages.indexOf(getLocalizedMomStage(currentWeek, lang));
   const isNow = stageIndex === nowIndex;
 
   function goStage(delta: number) {
@@ -69,7 +74,7 @@ export function MomScreen() {
           <div className="relative flex h-8 items-center justify-between">
             <div className="flex items-center gap-2">
               <p className="text-xs font-bold uppercase tracking-wider text-textMuted">
-                {isNow ? `Week ${weeks}, day ${days}` : 'Preview'}
+                {isNow ? t('mom.weekDay', { weeks, days }) : t('mom.preview')}
               </p>
               {!isNow && (
                 <button
@@ -79,7 +84,7 @@ export function MomScreen() {
                   }}
                   className="mom-pop rounded-full bg-peach px-2.5 py-0.5 text-xs font-bold text-white active:scale-95"
                 >
-                  Today
+                  {t('mom.today')}
                 </button>
               )}
             </div>
@@ -87,7 +92,7 @@ export function MomScreen() {
               <button
                 onClick={() => goStage(-1)}
                 disabled={stageIndex === 0}
-                aria-label="Previous stage"
+                aria-label={t('mom.prevStage')}
                 className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-peachLight text-peachDark transition-all active:scale-90 disabled:opacity-30"
               >
                 <ChevronLeft size={16} strokeWidth={2.5} />
@@ -95,7 +100,7 @@ export function MomScreen() {
               <button
                 onClick={() => goStage(1)}
                 disabled={stageIndex === momStages.length - 1}
-                aria-label="Next stage"
+                aria-label={t('mom.nextStage')}
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-peach text-white shadow-sm transition-all active:scale-90 disabled:opacity-30"
               >
                 <ChevronRight size={16} strokeWidth={2.5} />
@@ -126,7 +131,7 @@ export function MomScreen() {
               }`}
             >
               <Icon size={18} strokeWidth={2.2} />
-              <span>{label}</span>
+              <span>{t(label)}</span>
             </button>
           ))}
         </div>
@@ -165,7 +170,7 @@ export function MomScreen() {
                   </button>
                 ))}
             </div>
-            <p className="text-center text-xs font-semibold text-textMuted">Tap where it hurts</p>
+            <p className="text-center text-xs font-semibold text-textMuted">{t('mom.tapHurt')}</p>
             <h2 className="mt-2 text-center text-lg font-extrabold text-app-text">{area.label}</h2>
 
             {/* Steps as one timeline */}
@@ -183,7 +188,7 @@ export function MomScreen() {
             <div className="mt-3 flex gap-3 rounded-3xl bg-peachLight/40 p-4">
               <TriangleAlert size={20} className="shrink-0 text-peachDark" />
               <div>
-                <p className="text-sm font-extrabold text-app-text">See a doctor if</p>
+                <p className="text-sm font-extrabold text-app-text">{t('mom.seeDoctor')}</p>
                 <p className="mt-1 text-sm text-textMuted">{area.doctor}</p>
               </div>
             </div>
@@ -193,8 +198,8 @@ export function MomScreen() {
         {tab === 'exercise' && (
           <>
             <div className="mb-3 flex items-center justify-between rounded-2xl bg-peachLight/40 px-4 py-3">
-              <p className="text-sm font-extrabold text-peachDark">Today's moves</p>
-              <p className="text-xs font-bold text-peachDark">{doneCount} / {stage.exercise.length} done</p>
+              <p className="text-sm font-extrabold text-peachDark">{t('mom.todayMoves')}</p>
+              <p className="text-xs font-bold text-peachDark">{t('mom.doneCount', { done: doneCount, total: stage.exercise.length })}</p>
             </div>
             <ul className="space-y-2">
               {stage.exercise.map(item => {

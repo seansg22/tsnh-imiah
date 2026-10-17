@@ -1,17 +1,20 @@
 import { useState } from 'react';
 import { Check, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
+import { useLang, type LangState } from '../../i18n/langContext';
 import type { Milestone } from '../../types';
 
-function fmtWeek(w: number): string {
-  if (w <= 52) return `Week ${w}`;
+type T = LangState['t'];
+
+function fmtWeek(w: number, t: T): string {
+  if (w <= 52) return t('wk.week', { n: w });
   const yrs = Math.floor(w / 52);
   const wks = w % 52;
-  return wks === 0 ? `${yrs}y` : `${yrs}y${wks}w`;
+  return wks === 0 ? t('wk.shortYear', { n: yrs }) : t('wk.shortYearWeek', { y: yrs, w: wks });
 }
 
-function fmtWeekRange(start: number, end: number): string {
-  if (start <= 52) return `Week ${start}–${end}`;
-  return `${fmtWeek(start)} – ${fmtWeek(end)}`;
+function fmtWeekRange(start: number, end: number, t: T): string {
+  if (start <= 52) return t('wk.range', { s: start, e: end });
+  return `${fmtWeek(start, t)} – ${fmtWeek(end, t)}`;
 }
 
 interface MilestoneItemProps {
@@ -22,6 +25,7 @@ interface MilestoneItemProps {
 }
 
 export function MilestoneItem({ milestone, achieved, overdue, onToggle }: MilestoneItemProps) {
+  const { t } = useLang();
   const [expanded, setExpanded] = useState(false);
   const hasDescription = !!milestone.description;
 
@@ -42,9 +46,9 @@ export function MilestoneItem({ milestone, achieved, overdue, onToggle }: Milest
           </p>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-xs text-textMuted">
-              {fmtWeekRange(milestone.weekRange[0], milestone.weekRange[1])}
+              {fmtWeekRange(milestone.weekRange[0], milestone.weekRange[1], t)}
             </span>
-            {overdue && <span className="text-xs text-orange-400 font-semibold flex items-center gap-0.5"><AlertCircle size={11} /> Overdue</span>}
+            {overdue && <span className="text-xs text-orange-400 font-semibold flex items-center gap-0.5"><AlertCircle size={11} /> {t('ms.overdue')}</span>}
           </div>
         </div>
         {hasDescription && (

@@ -1,28 +1,31 @@
 import { useRef, useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Dumbbell, Brain, Heart, Eye } from 'lucide-react';
+import { useLang, type LangState } from '../../i18n/langContext';
+import type { UiKey } from '../../i18n/ui';
 import { useApp } from '../../context/appStateContext';
-import { getInsightExplanation } from '../../data/insightExplanations';
-import { getWeekData, definedWeeks } from '../../data/weeklyDevelopment';
+import { getWeekData, getInsightExplanationFor } from '../../data/localized';
+import { definedWeeks } from '../../data/weeklyDevelopment';
 import { useBabyAge } from '../../hooks/useBabyAge';
 
 type Category = 'motor' | 'cognitive' | 'social' | 'sensory';
 
-const categoryConfig: { key: Category; label: string; Icon: React.FC<{ size?: number; strokeWidth?: number }>; color: string }[] = [
-  { key: 'motor',     label: 'Motor',     Icon: Dumbbell, color: 'bg-orange-100 text-orange-600' },
-  { key: 'cognitive', label: 'Cognitive', Icon: Brain,    color: 'bg-blue-100 text-blue-600'     },
-  { key: 'social',    label: 'Social',    Icon: Heart,    color: 'bg-pink-100 text-pink-600'     },
-  { key: 'sensory',   label: 'Sensory',   Icon: Eye,      color: 'bg-purple-100 text-purple-600' },
+const categoryConfig: { key: Category; label: UiKey; Icon: React.FC<{ size?: number; strokeWidth?: number }>; color: string }[] = [
+  { key: 'motor',     label: 'cat.motor',     Icon: Dumbbell, color: 'bg-orange-100 text-orange-600' },
+  { key: 'cognitive', label: 'cat.cognitive', Icon: Brain,    color: 'bg-blue-100 text-blue-600'     },
+  { key: 'social',    label: 'cat.social',    Icon: Heart,    color: 'bg-pink-100 text-pink-600'     },
+  { key: 'sensory',   label: 'cat.sensory',   Icon: Eye,      color: 'bg-purple-100 text-purple-600' },
 ];
 
-function formatWeekLabel(week: number): string {
-  if (week <= 52) return `Week ${week}`;
+function formatWeekLabel(week: number, t: LangState['t']): string {
+  if (week <= 52) return t('wk.week', { n: week });
   const yrs = Math.floor(week / 52);
   const wks = week % 52;
-  if (wks === 0) return `${yrs} year${yrs !== 1 ? 's' : ''}`;
-  return `${yrs} yr ${wks} wk`;
+  if (wks === 0) return t(yrs !== 1 ? 'wk.years' : 'wk.year', { n: yrs });
+  return t('wk.yrWk', { y: yrs, w: wks });
 }
 
 export function InsightsScreen() {
+  const { t, lang } = useLang();
   const { state, dispatch } = useApp();
   const { currentWeek } = useBabyAge(state.babyProfile?.birthDate ?? null);
   const [activeCategory, setActiveCategory] = useState<Category>('motor');
@@ -46,7 +49,7 @@ export function InsightsScreen() {
   }, [currentWeek]);
 
   const selectedWeek = state.selectedWeek === 0 ? currentWeek : state.selectedWeek;
-  const data = getWeekData(selectedWeek);
+  const data = getWeekData(lang, selectedWeek);
 
   function changeWeek(delta: number) {
     const currentIdx = definedWeeks.findIndex(w => w >= selectedWeek);
@@ -60,7 +63,7 @@ export function InsightsScreen() {
   return (
     <div className="fade-in">
       <div className="px-4 pt-6 pb-4">
-        <h1 className="text-2xl font-extrabold text-app-text">Insights</h1>
+        <h1 className="text-2xl font-extrabold text-app-text">{t('ins.title')}</h1>
 
         {/* Week selector */}
         <div className="flex items-center gap-3 mt-3">
@@ -72,12 +75,12 @@ export function InsightsScreen() {
             <ChevronLeft size={20} strokeWidth={2.5} />
           </button>
           <div className="flex-1 text-center">
-            <p className="font-extrabold text-app-text">{formatWeekLabel(selectedWeek)}</p>
+            <p className="font-extrabold text-app-text">{formatWeekLabel(selectedWeek, t)}</p>
             <button
               onClick={() => selectedWeek !== currentWeek && dispatch({ type: 'SET_SELECTED_WEEK', payload: currentWeek })}
               className={`text-xs font-semibold ${selectedWeek === currentWeek ? 'text-peachDark cursor-default' : 'text-textMuted underline underline-offset-2'}`}
             >
-              {selectedWeek === currentWeek ? 'Current week' : 'Browsing · back to now'}
+              {selectedWeek === currentWeek ? t('ins.current') : t('ins.browsing')}
             </button>
           </div>
           <button
@@ -97,17 +100,19 @@ export function InsightsScreen() {
       </div>
 
       {/* Category tabs */}
-      <div ref={stickyRef} className="sticky top-0 z-10 bg-cream flex gap-2 px-4 py-3 overflow-x-auto no-scrollbar">
+      <div ref={stickyRef} className="sticky top-0 z-10 bg-cream flex gap-2 px-4 py-3 overflow-x-auto no-scrollbar overscroll-x-contain"
+        onWheel={e => { if (e.deltaY) e.currentTarget.scrollLeft += e.deltaY; }}
+      >
         {categoryConfig.map(({ key, label, Icon, color }) => (
           <button
             key={key}
             onClick={() => handleCategoryChange(key)}
-            className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all ${
+            className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold transition-all ${
               activeCategory === key ? color : 'bg-warm text-textMuted'
             }`}
           >
             <Icon size={14} strokeWidth={2} />
-            <span>{label}</span>
+            <span>{t(label)}</span>
           </button>
         ))}
       </div>
@@ -120,7 +125,7 @@ export function InsightsScreen() {
             <div>
               <p className="text-sm text-app-text font-bold leading-snug">{item}</p>
               <p className="mt-1 text-xs text-textMuted font-medium leading-relaxed">
-                {getInsightExplanation({ category: activeCategory, item, week: selectedWeek })}
+                {getInsightExplanationFor(lang, activeCategory, i, selectedWeek)}
               </p>
             </div>
           </div>

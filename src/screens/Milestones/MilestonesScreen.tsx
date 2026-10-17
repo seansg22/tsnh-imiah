@@ -1,25 +1,28 @@
 import { useRef, useState } from 'react';
 import { Search } from 'lucide-react';
-import { milestones } from '../../data/weeklyDevelopment';
+import { getMilestones } from '../../data/localized';
+import { useLang } from '../../i18n/langContext';
 import { useApp } from '../../context/appStateContext';
 import { useBabyAge } from '../../hooks/useBabyAge';
 import { MilestoneItem } from '../../components/milestones/MilestoneItem';
 import type { Milestone } from '../../types';
 
 const groups = [
-  { label: '0–4 weeks',    range: [0,   4]   as [number, number] },
-  { label: '4–12 weeks',   range: [4,   12]  as [number, number] },
-  { label: '12–24 weeks',  range: [12,  24]  as [number, number] },
-  { label: '24–36 weeks',  range: [24,  36]  as [number, number] },
-  { label: '36–52 weeks',  range: [36,  52]  as [number, number] },
-  { label: '1–1.5 years',  range: [52,  78]  as [number, number] },
-  { label: '1.5–2 years',  range: [78,  104] as [number, number] },
-  { label: '2–3 years',    range: [104, 200] as [number, number] },
+  { label: 'ms.g1' as const,    range: [0,   4]   as [number, number] },
+  { label: 'ms.g2' as const,   range: [4,   12]  as [number, number] },
+  { label: 'ms.g3' as const,  range: [12,  24]  as [number, number] },
+  { label: 'ms.g4' as const,  range: [24,  36]  as [number, number] },
+  { label: 'ms.g5' as const,  range: [36,  52]  as [number, number] },
+  { label: 'ms.g6' as const,  range: [52,  78]  as [number, number] },
+  { label: 'ms.g7' as const,  range: [78,  104] as [number, number] },
+  { label: 'ms.g8' as const,    range: [104, 200] as [number, number] },
 ];
 
 type CategoryFilter = 'all' | Milestone['category'];
 
 export function MilestonesScreen() {
+  const { t, lang } = useLang();
+  const milestones = getMilestones(lang);
   const { state, dispatch } = useApp();
   const { currentWeek } = useBabyAge(state.babyProfile?.birthDate ?? null);
   const [filter, setFilter] = useState<CategoryFilter>('all');
@@ -48,9 +51,9 @@ export function MilestonesScreen() {
   return (
     <div className="fade-in">
       <div className="px-4 pt-6">
-        <h1 className="text-2xl font-extrabold text-app-text">Milestones</h1>
+        <h1 className="text-2xl font-extrabold text-app-text">{t('ms.title')}</h1>
         <p className="text-textMuted text-sm font-medium mt-1">
-          {achievedCount} of {milestones.length} achieved
+          {t('ms.achieved', { done: achievedCount, total: milestones.length })}
         </p>
         <div className="w-full bg-peachLight rounded-full h-2 mt-2">
           <div
@@ -68,7 +71,7 @@ export function MilestonesScreen() {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search milestones…"
+            placeholder={t('ms.search')}
             className="flex-1 bg-transparent text-sm text-app-text placeholder:text-textMuted outline-none"
           />
           {search && (
@@ -84,7 +87,7 @@ export function MilestonesScreen() {
                 filter === cat ? 'bg-peach text-white' : 'bg-warm text-textMuted'
               }`}
             >
-              {cat}
+              {t(`cat.${cat}`)}
             </button>
           ))}
         </div>
@@ -93,7 +96,7 @@ export function MilestonesScreen() {
       {/* Milestone groups */}
       <div ref={contentRef} className="px-4 space-y-6 pb-6">
         {filtered.length === 0 && (
-          <p className="text-center text-textMuted text-sm py-8">No milestones found</p>
+          <p className="text-center text-textMuted text-sm py-8">{t('ms.none')}</p>
         )}
         {groups.map(group => {
           const groupMilestones = filtered.filter(
@@ -102,7 +105,7 @@ export function MilestonesScreen() {
           if (groupMilestones.length === 0) return null;
           return (
             <div key={group.label}>
-              <p className="text-xs font-bold text-textMuted uppercase tracking-wider mb-2">{group.label}</p>
+              <p className="text-xs font-bold text-textMuted uppercase tracking-wider mb-2">{t(group.label)}</p>
               <div className="space-y-2">
                 {groupMilestones.map(m => (
                   <MilestoneItem

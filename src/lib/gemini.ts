@@ -1,5 +1,17 @@
 // https://aistudio.google.com/u/1/api-keys?pli=1&project=gen-lang-client-0041515414
 // tson.regis@gmail.com
+import { translate } from '../i18n/ui';
+import type { Lang } from '../i18n/langContext';
+
+// Non-React code reads the app language straight from localStorage (JSON string, default 'vi').
+export function getStoredLang(): Lang {
+  try {
+    return JSON.parse(localStorage.getItem('baby-day:lang') ?? '"vi"') === 'en' ? 'en' : 'vi';
+  } catch {
+    return 'vi';
+  }
+}
+
 const MODELS = [
   'gemini-3.7-flash',
   'gemini-3.6-flash',
@@ -47,7 +59,7 @@ function getNextApiKey(model: string, apiKeys: string[]) {
  * attempts go model A / key 1, model A / key 2, model A / key 1, then model B / key 1, etc.
  *
  * A 503 ("model overloaded") skips the remaining retries for that model and moves
- * straight to the next one — retrying an overloaded model rarely helps and only
+ * straight to the next one, retrying an overloaded model rarely helps and only
  * burns the fixed RETRY_DELAY.
  *
  * The starting model is sticky across calls (see `modelIndex`): once a fallback
@@ -56,7 +68,7 @@ function getNextApiKey(model: string, apiKeys: string[]) {
  * wraps around to the start of MODELS (e.g. sticky on C, C fails → D, E, ... wraps to A, B).
  *
  * `onStatus`, if given, is called with a user-facing message before every retry (same
- * model, next attempt, or next model) — but never on the very first attempt. Callers
+ * model, next attempt, or next model), but never on the very first attempt. Callers
  * should treat these as transient UI-only status text, not part of the conversation.
  */
 export async function callGemini(
@@ -75,7 +87,7 @@ export async function callGemini(
     const model = MODELS[i];
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       if (n > 0 || attempt > 1) {
-        onStatus?.('Having trouble getting a response, retrying...');
+        onStatus?.(translate(getStoredLang(), 'ai.retrying'));
       }
       try {
         const apiKey = getNextApiKey(model, apiKeys);

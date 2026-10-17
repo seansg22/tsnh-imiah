@@ -1,6 +1,8 @@
 import { Home, Star, Sparkles, TrendingUp, Settings, BookOpenText, Baby, CalendarDays, Compass, UserRound, Utensils } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../context/appStateContext';
+import { useLang } from '../../i18n/langContext';
+import type { UiKey } from '../../i18n/ui';
 import { milestones } from '../../data/weeklyDevelopment';
 import { useBabyAge } from '../../hooks/useBabyAge';
 import type { Page } from '../../types';
@@ -17,22 +19,23 @@ function DaisyIcon({ size = 22, strokeWidth = 1.8 }: { size?: number; strokeWidt
   );
 }
 
-const homeOptions: { page: Page; icon: React.ElementType; label: string }[] = [
-  { page: 'today',    icon: Home,         label: 'Today'    },
-  { page: 'insights', icon: Sparkles,     label: 'Insights' },
-  { page: 'food',     icon: Utensils,     label: 'Food'     },
-  { page: 'book',     icon: BookOpenText, label: 'Read'     },
+const homeOptions: { page: Page; icon: React.ElementType; label: UiKey }[] = [
+  { page: 'today',    icon: Home,         label: 'nav.today'    },
+  { page: 'insights', icon: Sparkles,     label: 'nav.insights' },
+  { page: 'food',     icon: Utensils,     label: 'nav.food'     },
+  { page: 'book',     icon: BookOpenText, label: 'nav.read'     },
 ];
 
-const progressOptions: { page: Page; icon: React.ElementType; label: string }[] = [
-  { page: 'babyprofile', icon: UserRound,  label: 'Baby Profile' },
-  { page: 'milestones',  icon: Star,       label: 'Milestones'   },
-  { page: 'growth',      icon: TrendingUp, label: 'Growth'       },
-  { page: 'wonderweek',  icon: CalendarDays, label: 'Wonder Week' },
+const progressOptions: { page: Page; icon: React.ElementType; label: UiKey }[] = [
+  { page: 'babyprofile', icon: UserRound,  label: 'nav.babyProfile' },
+  { page: 'milestones',  icon: Star,       label: 'nav.milestones'   },
+  { page: 'growth',      icon: TrendingUp, label: 'nav.growth'       },
+  { page: 'wonderweek',  icon: CalendarDays, label: 'nav.wonderWeek' },
 ];
 
 export function BottomNav() {
   const { state, dispatch } = useApp();
+  const { t } = useLang();
   const [showProgress, setShowProgress] = useState(false);
   const [showHome, setShowHome] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -119,7 +122,7 @@ export function BottomNav() {
                         }`}
                       >
                         <Icon size={18} strokeWidth={isActive ? 2.5 : 1.8} />
-                        <span>{label}</span>
+                        <span>{t(label)}</span>
                       </button>
                     );
                   })}
@@ -132,7 +135,7 @@ export function BottomNav() {
                 }`}
               >
                 <Compass size={22} strokeWidth={isHomeActive ? 2.5 : 1.8} />
-                <span>Explore</span>
+                <span>{t('nav.explore')}</span>
               </button>
             </div>
 
@@ -150,7 +153,7 @@ export function BottomNav() {
                         }`}
                       >
                         <Icon size={18} strokeWidth={isActive ? 2.5 : 1.8} />
-                        <span>{label}</span>
+                        <span>{t(label)}</span>
                         {page === 'milestones' && unfinishedMilestones > 0 && (
                           <span className="ml-auto min-w-[20px] h-5 px-1.5 bg-peachLight text-peachDark text-xs font-bold rounded-full flex items-center justify-center leading-none">
                             {unfinishedMilestones > 99 ? '99+' : unfinishedMilestones}
@@ -175,7 +178,7 @@ export function BottomNav() {
                     </span>
                   )}
                 </div>
-                <span>Baby</span>
+                <span>{t('nav.baby')}</span>
               </button>
             </div>
           </div>
@@ -192,7 +195,7 @@ export function BottomNav() {
               }`}
             >
               <DaisyIcon size={22} strokeWidth={state.currentPage === 'mom' ? 2.5 : 1.8} />
-              <span>Mom</span>
+              <span>{t('nav.mom')}</span>
             </button>
 
             <button
@@ -202,7 +205,7 @@ export function BottomNav() {
               }`}
             >
               <Settings size={22} strokeWidth={state.currentPage === 'settings' ? 2.5 : 1.8} />
-              <span>Settings</span>
+              <span>{t('nav.settings')}</span>
             </button>
           </div>
         </div>

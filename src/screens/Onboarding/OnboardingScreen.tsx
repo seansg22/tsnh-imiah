@@ -4,9 +4,11 @@ import { Button } from '../../components/shared/Button';
 import { TextInput } from '../../components/shared/TextInput';
 import { DateInput } from '../../components/shared/DateInput';
 import { useApp } from '../../context/appStateContext';
+import { useLang } from '../../i18n/langContext';
 
 export function OnboardingScreen() {
   const { dispatch } = useApp();
+  const { t } = useLang();
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
   const [birthDate, setBirthDate] = useState('');
@@ -34,21 +36,21 @@ export function OnboardingScreen() {
               <Baby size={40} strokeWidth={1.5} className="text-peachDark" />
             </div>
             <h1 className="text-3xl font-extrabold text-app-text">IMIAH</h1>
-            <p className="text-textMuted mt-2 font-medium">Your baby's first year, day by day</p>
+            <p className="text-textMuted mt-2 font-medium">{t('onb.tagline')}</p>
           </div>
           <div className="bg-white rounded-3xl p-6 shadow-lg">
-            <p className="text-lg font-bold text-app-text mb-4">What's your baby's name?</p>
+            <p className="text-lg font-bold text-app-text mb-4">{t('onb.nameQ')}</p>
             <TextInput
               value={name}
               onChange={setName}
-              placeholder="e.g. Haimi"
+              placeholder={t('onb.namePh')}
             />
             <Button
               className="w-full mt-4"
               disabled={!name.trim()}
               onClick={() => setStep(2)}
             >
-              Next →
+              {t('onb.next')}
             </Button>
           </div>
         </div>
@@ -58,8 +60,8 @@ export function OnboardingScreen() {
             <div className="w-20 h-20 rounded-full bg-white shadow-md flex items-center justify-center mx-auto mb-4">
               <Cake size={40} strokeWidth={1.5} className="text-peachDark" />
             </div>
-            <h1 className="text-2xl font-extrabold text-app-text">When was {name} born?</h1>
-            <p className="text-textMuted mt-2 font-medium text-sm">We'll track their development from day one</p>
+            <h1 className="text-2xl font-extrabold text-app-text">{t('onb.bornQ', { name })}</h1>
+            <p className="text-textMuted mt-2 font-medium text-sm">{t('onb.bornHint')}</p>
           </div>
           <div className="bg-white rounded-3xl p-6 shadow-lg">
             <DateInput
@@ -73,13 +75,13 @@ export function OnboardingScreen() {
               disabled={!birthDate}
               onClick={handleFinish}
             >
-              Get Started 🎉
+              {t('onb.start')}
             </Button>
             <button
               onClick={() => setStep(1)}
               className="w-full mt-2 text-textMuted text-sm font-semibold py-2"
             >
-              ← Back
+              {t('onb.back')}
             </button>
           </div>
         </div>

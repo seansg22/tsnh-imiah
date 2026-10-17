@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useLang, type LangState } from '../../i18n/langContext';
 
 interface WeekStripProps {
   currentWeek: number;
@@ -6,15 +7,16 @@ interface WeekStripProps {
   onSelectWeek: (week: number) => void;
 }
 
-function weekLabel(w: number): string {
-  if (w <= 52) return `W${w}`;
+function weekLabel(w: number, t: LangState['t']): string {
+  if (w <= 52) return t('wk.short', { n: w });
   const yrs = Math.floor(w / 52);
   const wks = w % 52;
-  if (wks === 0) return `${yrs}y`;
-  return `${yrs}y${wks}w`;
+  if (wks === 0) return t('wk.shortYear', { n: yrs });
+  return t('wk.shortYearWeek', { y: yrs, w: wks });
 }
 
 export function WeekStrip({ currentWeek, selectedWeek, onSelectWeek }: WeekStripProps) {
+  const { t } = useLang();
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
 
@@ -91,7 +93,7 @@ export function WeekStrip({ currentWeek, selectedWeek, onSelectWeek }: WeekStrip
                   : 'bg-warm text-textMuted'
               }`}
             >
-              {weekLabel(i)}
+              {weekLabel(i, t)}
             </button>
           ))}
         </div>

@@ -1,5 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react';
 import { AppProvider } from './context/AppContext.tsx';
+import { LanguageProvider } from './i18n/LanguageProvider';
+import { useLang } from './i18n/langContext';
 import { useApp } from './context/appStateContext';
 import { AppShell } from './components/layout/AppShell';
 import { OnboardingScreen } from './screens/Onboarding/OnboardingScreen';
@@ -26,6 +28,7 @@ const BookScreen = lazy(() =>
 
 function AppContent() {
   const { state, dispatch } = useApp();
+  const { t } = useLang();
   useCloudSync();
   const { currentWeek } = useBabyAge(state.babyProfile?.birthDate ?? null);
   const achieved = new Set(state.achievedMilestones);
@@ -54,7 +57,7 @@ function AppContent() {
       <Suspense
         fallback={
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-cream text-sm font-extrabold text-textMuted">
-            Loading book...
+            {t('app.loadingBook')}
           </div>
         }
       >
@@ -102,8 +105,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <LanguageProvider>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </LanguageProvider>
   );
 }

@@ -1,5 +1,7 @@
 import { Moon, Milk, Zap, Star } from 'lucide-react';
 import type { Activity, WeekData } from '../../types';
+import { useLang, type Lang } from '../../i18n/langContext';
+import { weeklyData as enWeeklyData } from '../../data/weeklyDevelopment';
 
 // Playlist: "Your Baby's Development, Week by Week" — week 43 is missing in the playlist
 const WEEK_VIDEO_IDS: Record<number, string> = {
@@ -64,24 +66,76 @@ const ACTIVITY_SEARCH_TERMS: Record<string, string> = {
   'Photo journey': 'family photo memory activity toddler',
 };
 
-function getActivityAgeContext(week: number): string {
+// Vietnamese YouTube search terms, keyed by the same stable English activity title
+const ACTIVITY_SEARCH_TERMS_VI: Record<string, string> = {
+  'Talk softly': 'nói chuyện với trẻ sơ sinh',
+  'Show your face': 'tương tác mặt đối mặt với trẻ sơ sinh',
+  'Slow dance': 'ru bé nhảy nhẹ nhàng gắn kết',
+  'Coo back and forth': 'trò chuyện ê a với bé',
+  'Bicycle legs': 'đạp xe chân cho bé đỡ đầy hơi',
+  'Outdoor air': 'đưa trẻ sơ sinh ra ngoài',
+  'Smile game': 'trò chơi cười với bé',
+  'Narrate everything': 'nói chuyện với bé phát triển ngôn ngữ',
+  'Coo conversation': 'trò chuyện ê a với bé',
+  'Window gazing': 'kích thích thị giác cho bé',
+  'Make them laugh': 'cách chọc bé cười',
+  'Name game': 'dạy bé nhận biết tên mình',
+  'Roll practice': 'tập lật cho bé',
+  'Sound imitation': 'bé bắt chước âm thanh',
+  'Foot discovery': 'bé khám phá bàn chân',
+  'Scarf magic': 'chơi ú òa với khăn voan',
+  'Object grab': 'tập với và nắm đồ vật cho bé',
+  'Sit practice': 'tập ngồi cho bé',
+  'Object hide': 'trò chơi giấu đồ vật cho bé',
+  'Food exposure': 'cho bé làm quen thức ăn trước khi ăn dặm',
+  'Object in container': 'bé chơi bỏ đồ vào hộp',
+  'First words game': 'dạy bé nói những từ đầu tiên',
+  'Walking practice': 'tập đi cho bé',
+  'Board book library': 'đọc sách bìa cứng cho bé',
+  'Birthday adventure': 'ý tưởng hoạt động sinh nhật cho bé',
+  'Baby book': 'ý tưởng sổ kỷ niệm của bé',
+  'Push toy walk': 'xe đẩy tập đi cho bé',
+  'Naming walk': 'đi dạo dạy bé gọi tên đồ vật',
+  'Body part game': 'trò chơi các bộ phận cơ thể cho bé',
+  'Emotion naming': 'dạy bé gọi tên cảm xúc',
+  'Parallel household tasks': 'cho bé giúp việc nhà',
+  'Word labeling': 'dạy bé gọi tên đồ vật',
+  'Choice architecture': 'cho bé lựa chọn',
+  'Expand their sentences': 'mở rộng câu nói của bé',
+  'Answer why with why': 'trả lời câu hỏi tại sao của bé',
+  'Letter exposure': 'dạy bé nhận biết chữ cái',
+  'Name writing': 'tập viết tên cho bé mẫu giáo',
+  'Photo journey': 'hoạt động xem ảnh gia đình cho bé',
+};
+
+// Activity titles are shown in the current language, so look the stable English title up by activity id
+const EN_TITLE_BY_ID = new Map(enWeeklyData.flatMap(w => w.activities.map(a => [a.id, a.title] as const)));
+
+function getActivityAgeContext(week: number, lang: Lang): string {
+  if (lang === 'vi') {
+    if (week < 4) return 'trẻ sơ sinh';
+    if (week < 52) return 'em bé';
+    return 'bé 1 tuổi';
+  }
   if (week < 4) return 'newborn baby';
   if (week < 52) return 'baby';
   return 'toddler';
 }
 
-function getActivitySearchQuery(activity: Activity, week: number): string {
-  const searchTerm = ACTIVITY_SEARCH_TERMS[activity.title] ?? activity.title.toLowerCase();
-  const hasAgeContext = /\b(newborn|baby|toddler|preschool|child|children)\b/i.test(searchTerm);
-  return hasAgeContext ? searchTerm : `${searchTerm} ${getActivityAgeContext(week)}`;
+function getActivitySearchQuery(activity: Activity, week: number, lang: Lang): string {
+  const enTitle = EN_TITLE_BY_ID.get(activity.id) ?? activity.title;
+  const terms = lang === 'vi' ? ACTIVITY_SEARCH_TERMS_VI : ACTIVITY_SEARCH_TERMS;
+  const searchTerm = terms[enTitle] ?? (lang === 'vi' ? activity.title : enTitle).toLowerCase();
+  const hasAgeContext = lang === 'vi'
+    ? /(trẻ sơ sinh|em bé|\bbé\b|trẻ|mẫu giáo)/i.test(searchTerm)
+    : /\b(newborn|baby|toddler|preschool|child|children)\b/i.test(searchTerm);
+  return hasAgeContext ? searchTerm : `${searchTerm} ${getActivityAgeContext(week, lang)}`;
 }
 
-function getActivityYoutubeUrl(activity: Activity, week: number): string {
-  const query = getActivitySearchQuery(activity, week);
+function getActivityYoutubeUrl(activity: Activity, week: number, lang: Lang): string {
+  const query = getActivitySearchQuery(activity, week, lang);
   return `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
 }
-
-
 
 // lucide-react has no brand icons, so inline the YouTube logo
 function YouTubeLogo() {
@@ -94,11 +148,12 @@ function YouTubeLogo() {
 }
 
 export function WhatToExpectSection({ week, data }: WhatToExpectSectionProps) {
+  const { lang, t } = useLang();
   return (
     <div className="px-4 py-4">
       <div className="flex items-center gap-2">
         <Star size={16} strokeWidth={2} className="text-peachDark" />
-        <p className="text-base font-extrabold text-app-text">What to expect at week {week}</p>
+        <p className="text-base font-extrabold text-app-text">{t('wte.title', { week })}</p>
       </div>
 
       <div className="mt-4 space-y-4">
@@ -108,7 +163,7 @@ export function WhatToExpectSection({ week, data }: WhatToExpectSectionProps) {
             <div className="rounded-2xl overflow-hidden shadow-sm aspect-video">
               <iframe
                 src={`https://www.youtube.com/embed/${WEEK_VIDEO_IDS[week]}`}
-                title={`Week ${week} baby development`}
+                title={t('wte.videoTitle', { week })}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
                 className="w-full h-full"
@@ -119,24 +174,24 @@ export function WhatToExpectSection({ week, data }: WhatToExpectSectionProps) {
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <Moon size={16} strokeWidth={2} className="text-indigo-400" />
-              <p className="font-bold text-app-text">Sleep</p>
+              <p className="font-bold text-app-text">{t('wte.sleep')}</p>
             </div>
             <div className="text-sm text-textMuted space-y-1">
-              <p>Total: <span className="text-app-text font-semibold">{data.sleep.totalHoursRange} hours/day</span></p>
-              <p>Longest overnight stretch: <span className="text-app-text font-semibold">{data.sleep.nightSleepHours}</span></p>
-              <p>Daytime naps: <span className="text-app-text font-semibold">{data.sleep.naps}</span></p>
-              <p className="italic">Ranges are typical for this age. Short wakes and day-to-day variation are normal.</p>
+              <p>{t('wte.sleepTotal')} <span className="text-app-text font-semibold">{t('wte.hoursPerDay', { hours: data.sleep.totalHoursRange })}</span></p>
+              <p>{t('wte.longestStretch')} <span className="text-app-text font-semibold">{data.sleep.nightSleepHours}</span></p>
+              <p>{t('wte.naps')} <span className="text-app-text font-semibold">{data.sleep.naps}</span></p>
+              <p className="italic">{t('wte.sleepNote')}</p>
             </div>
           </div>
 
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <Milk size={16} strokeWidth={2} className="text-blue-400" />
-              <p className="font-bold text-app-text">Feeding</p>
+              <p className="font-bold text-app-text">{t('wte.feeding')}</p>
             </div>
             <div className="text-sm text-textMuted space-y-1">
-              <p>Method: <span className="text-app-text font-semibold">{data.feeding.method}</span></p>
-              <p>Frequency: <span className="text-app-text font-semibold">{data.feeding.frequency}</span></p>
+              <p>{t('wte.method')} <span className="text-app-text font-semibold">{data.feeding.method}</span></p>
+              <p>{t('wte.frequency')} <span className="text-app-text font-semibold">{data.feeding.frequency}</span></p>
               <p className="italic">{data.feeding.notes}</p>
             </div>
           </div>
@@ -144,17 +199,17 @@ export function WhatToExpectSection({ week, data }: WhatToExpectSectionProps) {
           <div className="bg-white rounded-2xl p-4 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <Zap size={16} strokeWidth={2} className="text-peach" />
-              <p className="font-bold text-app-text">Activities</p>
+              <p className="font-bold text-app-text">{t('wte.activities')}</p>
             </div>
             <div className="divide-y divide-peach/20">
               {data.activities.map(a => (
                 <a
                   key={a.id}
-                  href={getActivityYoutubeUrl(a, week)}
+                  href={getActivityYoutubeUrl(a, week, lang)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex gap-2.5 items-start py-2.5 first:pt-0 last:pb-0 active:opacity-70"
-                  aria-label={`Open YouTube videos for ${a.title}`}
+                  aria-label={t('wte.openYoutube', { title: a.title })}
                 >
                   <YouTubeLogo />
                   <div className="min-w-0 flex-1">

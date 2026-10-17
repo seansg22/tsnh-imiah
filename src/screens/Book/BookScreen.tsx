@@ -4,8 +4,11 @@ import * as pdfjsLib from 'pdfjs-dist';
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url';
 import { bookChapters } from '../../data/bookChapters';
+import { getLocalizedChapterTitle } from '../../data/localizedCare';
 import { useApp } from '../../context/appStateContext';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
+import { useLang } from '../../i18n/langContext';
+import type { UiKey } from '../../i18n/ui';
 import { useGesture } from '@use-gesture/react';
 import { useSpring, animated, to } from '@react-spring/web';
 
@@ -178,6 +181,7 @@ function renderSlot(
 // ---------------------------------------------------------------------------
 export function BookScreen() {
   const { dispatch } = useApp();
+  const { t, lang } = useLang();
 
   // Three canvas refs for the horizontal strip (prev | current | next)
   const prevCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -191,7 +195,7 @@ export function BookScreen() {
   const [pageNumber, setPageNumber] = useLocalStorage<number>('baby-day:book-page', 1);
   const [viewerWidth, setViewerWidth] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<UiKey | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
   const zoomedRenderCancelRef = useRef<(() => void) | null>(null);
   const [query, setQuery] = useState('');
@@ -255,7 +259,7 @@ export function BookScreen() {
         setPdfDoc(loadedPdf);
         setSearchEntries(outlineEntries.length > 0 ? outlineEntries : getFallbackSearchEntries());
       })
-      .catch(() => { if (!cancelled) setError('Unable to load the book.'); })
+      .catch(() => { if (!cancelled) setError('book.errLoad'); })
       .finally(() => { if (!cancelled) setIsLoading(false); });
 
     return () => {
@@ -307,7 +311,7 @@ export function BookScreen() {
 
         await Promise.all([prevResult.promise, nextResult.promise]);
       } catch {
-        if (!cancelled) setError('Unable to render this page.');
+        if (!cancelled) setError('book.errRender');
       }
     }
 
@@ -451,11 +455,13 @@ export function BookScreen() {
   function getEntryMeta(entry: BookSearchEntry) {
     const chapterMeta =
       entry.kind === 'section' && entry.chapter
-        ? `Chapter ${entry.chapter}${entry.parentTitle ? `: ${entry.parentTitle}` : ''}`
+        ? entry.parentTitle
+          ? t('book.chapterOf', { n: entry.chapter, parent: entry.parentTitle })
+          : t('book.chapter', { n: entry.chapter })
         : entry.kind === 'chapter' && entry.chapter
-          ? `Chapter ${entry.chapter}`
-          : 'Book';
-    return `${chapterMeta} • Page ${entry.page}`;
+          ? t('book.chapter', { n: entry.chapter })
+          : t('book.bookLabel');
+    return t('book.metaPage', { meta: chapterMeta, page: entry.page });
   }
 
   // -------------------------------------------------------------------------
@@ -550,7 +556,7 @@ export function BookScreen() {
             type="button"
             onClick={() => dispatch({ type: 'SET_PAGE', payload: 'today' })}
             className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-cream text-peachDark"
-            aria-label="Back to today"
+            aria-label={t('book.backToday')}
           >
             <ArrowLeft size={20} strokeWidth={2.3} />
           </button>
@@ -571,7 +577,7 @@ export function BookScreen() {
                 if (e.relatedTarget?.id === 'clear-search') return;
                 window.setTimeout(() => setIsSearchOpen(false), 100);
               }}
-              placeholder="Search"
+              placeholder={t('book.search')}
               className="h-10 w-full rounded-full border border-peachLight bg-cream px-9 text-sm font-bold text-app-text outline-none transition-colors placeholder:text-textMuted focus:border-peach"
             />
             {query && (
@@ -580,7 +586,7 @@ export function BookScreen() {
                 type="button"
                 onClick={(e) => { e.stopPropagation(); e.preventDefault(); setQuery(''); setIsSearchOpen(true); }}
                 className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-textMuted"
-                aria-label="Clear chapter search"
+                aria-label={t('book.clearSearch')}
               >
                 <X size={15} strokeWidth={2.2} />
               </button>
@@ -607,13 +613,16 @@ export function BookScreen() {
                     </button>
                   ))
                 ) : (
-                  <p className="px-3 py-4 text-sm font-semibold text-textMuted">No result found.</p>
+                  <p className="px-3 py-4 text-sm font-semibold text-textMuted">{t('book.noResult')}</p>
                 )}
               </div>
             )}
           </div>
         </div>
       </header>
+      {lang === 'vi' && (
+        <p className="flex-shrink-0 bg-peachLight/40 px-4 py-1.5 text-center text-xs font-semibold text-textMuted">{t('book.englishOnly')}</p>
+      )}
 
       {/* ── Main: gesture container ─────────────────────────────────────────── */}
       <main
@@ -623,13 +632,13 @@ export function BookScreen() {
         {/* Loading / error overlays */}
         {(isLoading) && (
           <div className="pointer-events-none absolute left-1/2 top-6 z-10 -translate-x-1/2 rounded-full bg-white px-3 py-1.5 text-xs font-extrabold text-textMuted shadow-sm">
-            Loading book…
+            {t('book.loading')}
           </div>
         )}
 
         {error && (
           <div className="absolute inset-x-4 top-16 z-10 rounded-2xl bg-white p-4 text-sm font-bold text-peachDark shadow-sm">
-            {error}
+            {t(error)}
           </div>
         )}
 
@@ -639,9 +648,9 @@ export function BookScreen() {
             type="button"
             onClick={resetZoom}
             className="absolute right-3 top-3 z-10 rounded-full bg-black/40 px-2.5 py-1 text-xs font-bold text-white backdrop-blur-sm"
-            aria-label="Reset zoom"
+            aria-label={t('book.resetZoom')}
           >
-            {Math.round(zoomLevel * 100)}% · tap to reset
+            {t('book.zoomReset', { pct: Math.round(zoomLevel * 100) })}
           </button>
         )}
 
@@ -711,7 +720,7 @@ export function BookScreen() {
             onClick={() => goToPage(pageNumber - 1)}
             disabled={pageNumber <= 1 || isLoading}
             className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-cream text-peachDark transition-opacity disabled:opacity-40"
-            aria-label="Previous page"
+            aria-label={t('book.prev')}
           >
             <ChevronLeft size={22} strokeWidth={2.5} />
           </button>
@@ -724,12 +733,12 @@ export function BookScreen() {
                   {currentChapter.chapter}
                 </span>
                 <span className="truncate text-[11px] font-semibold text-textMuted">
-                  {currentChapter.title}
+                  {getLocalizedChapterTitle(currentChapter.chapter, lang)}
                 </span>
               </span>
             )}
             <span className="text-sm font-extrabold text-app-text">
-              {totalPages ? `${pageNumber} / ${totalPages}` : 'Loading…'}
+              {totalPages ? `${pageNumber} / ${totalPages}` : t('book.loadingShort')}
             </span>
           </div>
 
@@ -738,7 +747,7 @@ export function BookScreen() {
             onClick={() => goToPage(pageNumber + 1)}
             disabled={!totalPages || pageNumber >= totalPages || isLoading}
             className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-peach text-white shadow-md transition-opacity disabled:opacity-40"
-            aria-label="Next page"
+            aria-label={t('book.next')}
           >
             <ChevronRight size={22} strokeWidth={2.5} />
           </button>

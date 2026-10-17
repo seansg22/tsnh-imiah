@@ -8,6 +8,7 @@ import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { milestones } from '../../data/weeklyDevelopment';
 import { callAI } from '../../lib/ai';
 import { summarizeConversation } from '../../lib/knowledgeSummary';
+import { useLang } from '../../i18n/langContext';
 import { nowTimestamp } from '../../lib/timestamp';
 
 interface Message {
@@ -25,12 +26,13 @@ const MAX_INPUT_ROWS = 5;
 
 export function AIScreen() {
   const { state, dispatch } = useApp();
+  const { t, lang } = useLang();
   const age = useBabyAge(state.babyProfile?.birthDate ?? null);
   const [messages, setMessages] = useLocalStorage<Message[]>('ai-messages', []);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   // Transient "retrying..." status shown next to the loading indicator. Never added to
-  // `messages` — it must not be persisted or sent back to the AI as conversation history.
+  // `messages`, it must not be persisted or sent back to the AI as conversation history.
   const [statusMessage, setStatusMessage] = useState('');
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [streamingContent, setStreamingContent] = useState('');
@@ -151,9 +153,12 @@ Baby:
 - Solids: ${solidsLine}${measurementsLine ? `\n- Latest measurements: ${measurementsLine}` : ''}${milestonesLine ? `\n- Achieved milestones: ${milestonesLine}` : ''}${notesLine}${historyLine ? `\n\nKnown history about ${baby.name} from past conversations:\n${historyLine}` : ''}
 
 Rules:
-- Address the user as "${baby.name}'s parent" in the language they used in their question, but only in the your first response of the conversation.
-- Answer in the language the user used in their question.
-- Format answers as bullet points — one concise sentence per bullet
+${lang === 'vi'
+  ? `- Always answer in Vietnamese.
+- Address the user as "bố/mẹ của bé ${baby.name}", but only in your first response of the conversation.`
+  : `- Always answer in English.
+- Address the user as "${baby.name}'s parent", but only in your first response of the conversation.`}
+- Format answers as bullet points, one concise sentence per bullet
 - Use 3 to 5 bullets max unless user explicitly asks to be more comprehensive
 - Give practical, age-aware, gender-aware, measurement-aware guidance`;
 
@@ -170,7 +175,7 @@ Rules:
     setStatusMessage('');
 
     if (!result) {
-      setMessages([...withUser, { role: 'assistant', content: 'Something went wrong after several attempts. Please try again later.', timestamp: nowTimestamp() }]);
+      setMessages([...withUser, { role: 'assistant', content: t('ai.failed'), timestamp: nowTimestamp() }]);
       setLoading(false);
       return;
     }
@@ -214,13 +219,13 @@ Rules:
           type="button"
           onClick={() => dispatch({ type: 'SET_PAGE', payload: 'today' })}
           className="flex h-9 w-9 items-center justify-center rounded-full bg-black/5 text-app-text"
-          aria-label="Go back"
+          aria-label={t('ai.back')}
         >
           <ArrowLeft size={20} strokeWidth={2.3} />
         </button>
         <div className="flex flex-1 items-center gap-2">
           <Sparkles size={18} className="text-peach" />
-          <span className="text-lg font-extrabold text-app-text">Ask AI</span>
+          <span className="text-lg font-extrabold text-app-text">{t('ai.title')}</span>
         </div>
         {messages.length > 0 && (
           <button
@@ -235,7 +240,7 @@ Rules:
               setMessages([]);
 
               if (clearedMessages.length > 0) {
-                summarizeConversation(clearedMessages, state.babyProfile?.name ?? 'the baby')
+                summarizeConversation(clearedMessages, state.babyProfile?.name ?? t('ai.theBaby'), lang)
                   .then(summary => {
                     if (summary) {
                       dispatch({
@@ -248,7 +253,7 @@ Rules:
               }
             }}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-black/5 text-textMuted"
-            aria-label="Clear conversation"
+            aria-label={t('ai.clear')}
           >
             <Trash2 size={16} strokeWidth={2.2} />
           </button>
@@ -263,7 +268,7 @@ Rules:
               <Sparkles size={26} className="text-peach" />
             </div>
             <p className="text-textMuted text-sm font-medium max-w-[260px]">
-              I already know {state.babyProfile?.name} — her age, gender, and profile. Ask me anything about her development, feeding, sleep, or milestones.
+              {t('ai.empty', { name: state.babyProfile?.name ?? '' })}
             </p>
           </div>
         )}
@@ -288,10 +293,10 @@ Rules:
                       setTimeout(() => setCopiedIndex(null), 1500);
                     }}
                     className="flex items-center gap-1 text-sm text-textMuted active:text-app-text"
-                    aria-label="Copy message"
+                    aria-label={t('ai.copyAria')}
                   >
                     {copiedIndex === i ? <Check size={12} strokeWidth={2.2} /> : <Copy size={12} strokeWidth={2.2} />}
-                    {copiedIndex === i ? 'Copied' : 'Copy'}
+                    {copiedIndex === i ? t('ai.copied') : t('ai.copy')}
                   </button>
                 </div>
               </div>
@@ -329,7 +334,7 @@ Rules:
           <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-orange-50 border border-peachLight">
             <Info size={16} strokeWidth={2.2} className="mt-0.5 flex-shrink-0 text-peach" />
             <p className="text-sm leading-relaxed text-app-text">
-              Long chats hurt AI quality and use up the budget faster. Clear the chat to start fresh.
+              {t('ai.longChat')}
             </p>
           </div>
         )}
@@ -348,7 +353,7 @@ Rules:
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="I know about your kid, just ask..."
+            placeholder={t('ai.placeholder')}
             rows={1}
             className="flex-1 resize-none rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-app-text placeholder:text-textMuted focus:outline-none focus:ring-2 focus:ring-peach/40"
             style={{ lineHeight: '1.5' }}
@@ -358,7 +363,7 @@ Rules:
             onClick={() => send()}
             disabled={!input.trim() || loading}
             className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-peach text-white shadow-sm transition-opacity disabled:opacity-40 active:scale-95"
-            aria-label="Send"
+            aria-label={t('ai.send')}
           >
             <Send size={18} strokeWidth={2.2} />
           </button>

@@ -1,6 +1,17 @@
 // Syncs localStorage to the backend as one opaque key->string snapshot.
 // Auto flow = three-way merge (base = last synced snapshot, local, cloud) guarded by a server version.
 import { merge } from './merge';
+import { translate } from '../i18n/ui';
+import type { Lang } from '../i18n/langContext';
+
+// Not a component, so read the saved language straight from localStorage (default vi)
+function msg(key: 'sync.notConfigured' | 'sync.requestFailed' | 'sync.conflict', vars?: Record<string, string | number>) {
+  let lang: Lang = 'vi';
+  try {
+    if (JSON.parse(localStorage.getItem('baby-day:lang') ?? 'null') === 'en') lang = 'en';
+  } catch { /* keep default */ }
+  return translate(lang, key, vars);
+}
 
 const API = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const ACCOUNT = 'sync:account';
@@ -27,14 +38,14 @@ class HttpError extends Error {
 }
 
 async function post<T>(path: string, body: object): Promise<T> {
-  if (!API) throw new Error('Cloud sync is not configured');
+  if (!API) throw new Error(msg('sync.notConfigured'));
   const res = await fetch(`${API}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new HttpError((json as { error?: string }).error ?? `Request failed (${res.status})`, res.status);
+  if (!res.ok) throw new HttpError((json as { error?: string }).error ?? msg('sync.requestFailed', { status: res.status }), res.status);
   return json as T;
 }
 
@@ -136,7 +147,7 @@ export async function sync() {
     markSynced(merged);
     return;
   }
-  throw new Error('Sync conflict, please try again');
+  throw new Error(msg('sync.conflict'));
 }
 
 // Explicit overwrite: cloud := this device.

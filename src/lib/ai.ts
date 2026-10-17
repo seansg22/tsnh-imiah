@@ -1,5 +1,6 @@
 import { callOpenRouter } from './openrouter';
-import { callGemini, type GeminiContent } from './gemini';
+import { callGemini, getStoredLang, type GeminiContent } from './gemini';
+import { translate } from '../i18n/ui';
 
 export interface AIMessage {
   role: 'user' | 'assistant';
@@ -35,7 +36,7 @@ async function callClaudeProxy(systemInstruction: string, messages: AIMessage[])
 
 /**
  * Tries the laptop Claude proxy first (if configured), then Gemini; if it fails (bad key, network error, rate limit,
- * etc. — anything that makes it return null), falls back to OpenRouter so the
+ * etc., anything that makes it return null), falls back to OpenRouter so the
  * app still gets an answer instead of surfacing an error.
  *
  * `onStatus`, if given, is called with a user-facing message whenever this falls
@@ -58,6 +59,6 @@ export async function callAI(
   if (geminiResult) return geminiResult;
 
   console.warn('Gemini failed, falling back to OpenRouter');
-  onStatus?.('Having trouble getting a response, retrying...');
+  onStatus?.(translate(getStoredLang(), 'ai.retrying'));
   return callOpenRouter(systemInstruction, messages);
 }

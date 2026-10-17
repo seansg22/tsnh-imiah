@@ -1,0 +1,34 @@
+import { defineStrings } from '../defineStrings';
+
+export const aiStrings = defineStrings(
+  {
+    'ai.retrying': 'Having trouble getting a response, retrying...',
+    'ai.failed': 'Something went wrong after several attempts. Please try again later.',
+    'ai.title': 'Ask AI',
+    'ai.back': 'Go back',
+    'ai.clear': 'Clear conversation',
+    'ai.empty': 'I already know {name}, her age, gender, and profile. Ask me anything about her development, feeding, sleep, or milestones.',
+    'ai.copy': 'Copy',
+    'ai.copied': 'Copied',
+    'ai.copyAria': 'Copy message',
+    'ai.longChat': 'Long chats hurt AI quality and use up the budget faster. Clear the chat to start fresh.',
+    'ai.placeholder': 'I know about your kid, just ask...',
+    'ai.send': 'Send',
+    'ai.theBaby': 'the baby',
+  },
+  {
+    'ai.retrying': 'Mạng hơi chậm, mình đang thử lại nhé...',
+    'ai.failed': 'Mình thử nhiều lần rồi mà vẫn chưa được. Mẹ thử lại sau một chút nhé.',
+    'ai.title': 'Hỏi AI',
+    'ai.back': 'Quay lại',
+    'ai.clear': 'Xóa cuộc trò chuyện',
+    'ai.empty': 'Mình đã biết về {name} rồi, từ tuổi, giới tính đến hồ sơ của bé. Mẹ cứ hỏi mình về sự phát triển, ăn uống, giấc ngủ hay các mốc của bé nhé.',
+    'ai.copy': 'Sao chép',
+    'ai.copied': 'Đã chép',
+    'ai.copyAria': 'Sao chép tin nhắn',
+    'ai.longChat': 'Chat dài làm AI trả lời kém hơn và tốn lượt nhanh hơn. Mẹ xóa cuộc trò chuyện để bắt đầu lại nhé.',
+    'ai.placeholder': 'Mình biết về bé rồi, mẹ cứ hỏi nhé...',
+    'ai.send': 'Gửi',
+    'ai.theBaby': 'bé',
+  }
+);

@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useLang } from '../../i18n/langContext';
+import { formatDate as formatLocaleDate } from '../../i18n/date';
 
 /**
  * DateInput — custom date picker using three <select> elements.
@@ -11,11 +13,6 @@ import { useState } from 'react';
  *   min     – optional YYYY-MM-DD lower bound
  *   max     – optional YYYY-MM-DD upper bound
  */
-
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
 
 function daysInMonth(year: number, month: number) {
   return new Date(year, month, 0).getDate();
@@ -50,6 +47,8 @@ function valueClass(selected: number) {
 }
 
 export function DateInput({ value, onChange, min, max, compact }: DateInputProps) {
+  const { t, lang } = useLang();
+  const monthNames = Array.from({ length: 12 }, (_, i) => formatLocaleDate(new Date(2000, i, 1), 'MMMM', lang));
   const parsed = parseDate(value);
   const minParsed = parseDate(min ?? '');
   const maxParsed = parseDate(max ?? '');
@@ -98,8 +97,8 @@ export function DateInput({ value, onChange, min, max, compact }: DateInputProps
         className={`${selectClass} ${sizeClass} ${valueClass(selectedMonth)}`}
         style={{ WebkitAppearance: 'none' }}
       >
-        <option value="" disabled>Month</option>
-        {MONTHS.map((name, i) => (
+        <option value="" disabled>{t('date.month')}</option>
+        {monthNames.map((name, i) => (
           <option key={name} value={i + 1}>{name}</option>
         ))}
       </select>
@@ -111,7 +110,7 @@ export function DateInput({ value, onChange, min, max, compact }: DateInputProps
         className={`${selectClass} ${sizeClass} max-w-[72px] ${valueClass(selectedDay)}`}
         style={{ WebkitAppearance: 'none' }}
       >
-        <option value="" disabled>Day</option>
+        <option value="" disabled>{t('date.day')}</option>
         {Array.from({ length: dayCount }, (_, i) => i + 1).map(d => (
           <option key={d} value={d}>{d}</option>
         ))}
@@ -124,7 +123,7 @@ export function DateInput({ value, onChange, min, max, compact }: DateInputProps
         className={`${selectClass} ${sizeClass} max-w-[90px] ${valueClass(selectedYear)}`}
         style={{ WebkitAppearance: 'none' }}
       >
-        <option value="" disabled>Year</option>
+        <option value="" disabled>{t('date.year')}</option>
         {years.map(y => (
           <option key={y} value={y}>{y}</option>
         ))}

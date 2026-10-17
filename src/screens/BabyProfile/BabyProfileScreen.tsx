@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
-import { format, parseISO } from 'date-fns';
+import { parseISO } from 'date-fns';
 import { Pencil, Trash2, Check, X } from 'lucide-react';
 import { useApp } from '../../context/appStateContext';
+import { useLang } from '../../i18n/langContext';
+import { formatDate } from '../../i18n/date';
 import { TextInput } from '../../components/shared/TextInput';
 import { DateInput } from '../../components/shared/DateInput';
 import { DEFAULT_EDD } from '../../constants/babyDefaults';
@@ -9,6 +11,7 @@ import type { FeedingMethod, KnowledgeEntry } from '../../types';
 
 export function BabyProfileScreen() {
   const { state, dispatch } = useApp();
+  const { t, lang } = useLang();
   const [name, setName] = useState(state.babyProfile?.name ?? '');
   const [birthDate, setBirthDate] = useState(state.babyProfile?.birthDate ?? '');
   const [edd, setEdd] = useState(state.babyProfile?.edd ?? DEFAULT_EDD);
@@ -70,23 +73,23 @@ export function BabyProfileScreen() {
 
   return (
     <div className="fade-in px-4 pt-6 pb-8">
-      <h1 className="text-2xl font-extrabold text-app-text">Baby Profile</h1>
-      <p className="text-sm text-textMuted mt-1">Used to personalize guidance in Ask AI.</p>
+      <h1 className="text-2xl font-extrabold text-app-text">{t('bp.title')}</h1>
+      <p className="text-sm text-textMuted mt-1">{t('bp.subtitle')}</p>
 
       <div className="bg-white rounded-2xl p-4 shadow-sm mt-6 space-y-3">
         <div className="flex gap-2">
           <div className="flex-1">
-            <p className="text-xs font-semibold text-textMuted mb-1 uppercase tracking-wide">Name</p>
-            <TextInput value={name} onChange={setName} placeholder="Baby's name" className="h-11 py-0 text-sm" />
+            <p className="text-xs font-semibold text-textMuted mb-1 uppercase tracking-wide">{t('bp.name')}</p>
+            <TextInput value={name} onChange={setName} placeholder={t('bp.namePh')} className="h-11 py-0 text-sm" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-textMuted mb-1 uppercase tracking-wide">Gender</p>
+            <p className="text-xs font-semibold text-textMuted mb-1 uppercase tracking-wide">{t('bp.gender')}</p>
             <div className="flex gap-1.5">
               {(['girl', 'boy'] as const).map(g => (
                 <button
                   key={g}
                   onClick={() => setGender(g)}
-                  aria-label={g === 'girl' ? 'Girl' : 'Boy'}
+                  aria-label={g === 'girl' ? t('bp.girl') : t('bp.boy')}
                   className={`w-10 h-11 flex items-center justify-center rounded-xl text-sm font-bold leading-none transition-all border-2 ${gender === g
                     ? 'bg-peach text-white border-peach'
                     : 'bg-cream text-textMuted border-peachLight'
@@ -99,21 +102,21 @@ export function BabyProfileScreen() {
           </div>
         </div>
         <div>
-          <p className="text-xs font-semibold text-textMuted mb-1 uppercase tracking-wide">Birth date</p>
+          <p className="text-xs font-semibold text-textMuted mb-1 uppercase tracking-wide">{t('bp.birthDate')}</p>
           <DateInput value={birthDate} max={today} onChange={setBirthDate} compact />
         </div>
         <div>
-          <p className="text-xs font-semibold text-textMuted mb-1 uppercase tracking-wide">Due date (EDD)</p>
+          <p className="text-xs font-semibold text-textMuted mb-1 uppercase tracking-wide">{t('bp.edd')}</p>
           <DateInput value={edd} max={maxEddDate} onChange={setEdd} compact />
-          <p className="text-[11px] text-textMuted mt-1">Used to calculate Wonder Week developmental leaps.</p>
+          <p className="text-[11px] text-textMuted mt-1">{t('bp.eddHint')}</p>
         </div>
         <div>
-          <p className="text-xs font-semibold text-textMuted mb-1 uppercase tracking-wide">Feeding</p>
+          <p className="text-xs font-semibold text-textMuted mb-1 uppercase tracking-wide">{t('bp.feeding')}</p>
           <div className="flex gap-1.5">
             {([
-              ['breast', 'Breast'],
-              ['bottle', 'Bottle'],
-              ['formula', 'Formula'],
+              ['breast', t('bp.breast')],
+              ['bottle', t('bp.bottle')],
+              ['formula', t('bp.formula')],
             ] as [FeedingMethod, string][]).map(([value, label]) => (
               <button
                 key={value}
@@ -131,54 +134,54 @@ export function BabyProfileScreen() {
         {feedingMethod === 'formula' && (
           <div>
             <div className="flex items-center justify-between mb-1">
-              <p className="text-xs font-semibold text-textMuted uppercase tracking-wide">Switched to formula</p>
+              <p className="text-xs font-semibold text-textMuted uppercase tracking-wide">{t('bp.formulaSwitch')}</p>
               {formulaSwitchDate && (
                 <button onClick={() => setFormulaSwitchDate('')} className="text-[11px] font-semibold text-peachDark">
-                  Clear
+                  {t('bp.clear')}
                 </button>
               )}
             </div>
             <DateInput value={formulaSwitchDate} min={birthDate} max={today} onChange={setFormulaSwitchDate} compact />
             <p className="text-[11px] text-textMuted mt-1">
-              When your baby switched from breast milk to formula.
+              {t('bp.formulaSwitchHint')}
             </p>
           </div>
         )}
         <div>
           <div className="flex items-center justify-between mb-1">
-            <p className="text-xs font-semibold text-textMuted uppercase tracking-wide">Starting solids</p>
+            <p className="text-xs font-semibold text-textMuted uppercase tracking-wide">{t('bp.solids')}</p>
             {solidsStartDate && (
               <button onClick={() => setSolidsStartDate('')} className="text-[11px] font-semibold text-peachDark">
-                Clear
+                {t('bp.clear')}
               </button>
             )}
           </div>
           <DateInput value={solidsStartDate} min={birthDate} max={today} onChange={setSolidsStartDate} compact />
           <p className="text-[11px] text-textMuted mt-1">
-            When your baby started eating solid foods (weaning). Leave blank if not started yet — typically around 24 weeks.
+            {t('bp.solidsHint')}
           </p>
         </div>
         <div>
-          <p className="text-xs font-semibold text-textMuted mb-1 uppercase tracking-wide">Notes</p>
+          <p className="text-xs font-semibold text-textMuted mb-1 uppercase tracking-wide">{t('bp.notes')}</p>
           <textarea
             value={notes}
             onChange={e => setNotes(e.target.value)}
             rows={14}
-            placeholder="E.g. allergies, sleep habits, favorite toys, things that upset her, or anything else worth remembering… Mentioning dates (e.g. 'started teething on 12/03') helps the AI give more accurate answers."
+            placeholder={t('bp.notesPh')}
             className="w-full text-sm bg-cream rounded-xl px-4 py-3 resize-none text-app-text border-2 border-peachLight focus:border-peach outline-none transition-colors placeholder:text-textMuted/50"
           />
-          <p className="text-[11px] text-textMuted mt-px">We'll share this with Ask AI to help it give better answers.</p>
+          <p className="text-[11px] text-textMuted mt-px">{t('bp.notesHint')}</p>
         </div>
       </div>
 
       <div className="mt-6">
-        <p className="text-xs font-bold text-textMuted uppercase tracking-wide mb-1 px-1">AI Knowledge Timeline</p>
+        <p className="text-xs font-bold text-textMuted uppercase tracking-wide mb-1 px-1">{t('bp.timeline')}</p>
         <p className="text-[11px] text-textMuted mb-2 px-1">
-          Auto-generated by Ask AI whenever you clear a conversation. Edit or remove anything that looks wrong.
+          {t('bp.timelineHint')}
         </p>
         <div className="space-y-2">
           {state.knowledgeBase.length === 0 && (
-            <p className="text-sm text-textMuted px-1">Nothing recorded yet — clear a chat in Ask AI to build this up.</p>
+            <p className="text-sm text-textMuted px-1">{t('bp.timelineEmpty')}</p>
           )}
           {[...state.knowledgeBase]
             .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -188,21 +191,21 @@ export function BabyProfileScreen() {
                 <div key={entry.id} className="bg-white rounded-xl px-4 py-3 shadow-sm">
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs font-semibold text-textMuted">
-                      {format(parseISO(entry.createdAt), 'dd MMM yyyy, HH:mm')}
+                      {formatDate(parseISO(entry.createdAt), 'dd MMM yyyy, HH:mm', lang)}
                     </p>
                     {isEditing ? (
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => saveEditKnowledge(entry)}
                           className="p-1 text-success"
-                          aria-label="Save"
+                          aria-label={t('bp.save')}
                         >
                           <Check size={14} strokeWidth={2.2} />
                         </button>
                         <button
                           onClick={() => setEditingKnowledgeId(null)}
                           className="p-1 text-textMuted"
-                          aria-label="Cancel"
+                          aria-label={t('bp.cancel')}
                         >
                           <X size={14} strokeWidth={2.2} />
                         </button>
@@ -212,14 +215,14 @@ export function BabyProfileScreen() {
                         <button
                           onClick={() => startEditKnowledge(entry)}
                           className="p-1 text-textMuted hover:text-peach"
-                          aria-label="Edit entry"
+                          aria-label={t('bp.editEntry')}
                         >
                           <Pencil size={14} strokeWidth={2.2} />
                         </button>
                         <button
                           onClick={() => dispatch({ type: 'DELETE_KNOWLEDGE_ENTRY', payload: entry.id })}
                           className="p-1 text-textMuted hover:text-red-400"
-                          aria-label="Delete entry"
+                          aria-label={t('bp.deleteEntry')}
                         >
                           <Trash2 size={14} strokeWidth={2.2} />
                         </button>

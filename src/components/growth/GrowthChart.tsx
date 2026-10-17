@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { GrowthEntry } from '../../types';
 import { type GrowthMetric, type Gender, whoData, getPercentileAt } from '../../data/whoGrowthData';
 import { differenceInWeeks, parseISO } from 'date-fns';
+import { useLang } from '../../i18n/langContext';
 
 interface Props {
   entries: GrowthEntry[];
@@ -22,6 +23,7 @@ function getMetricValue(entry: GrowthEntry, metric: GrowthMetric): number | unde
 }
 
 export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
+  const { t } = useLang();
   const [tooltip, setTooltip] = useState<{ x: number; y: number; label: string } | null>(null);
 
   const data = whoData[gender][metric];
@@ -133,8 +135,8 @@ export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
               strokeWidth="1.5"
               style={{ cursor: 'pointer' }}
               onClick={() =>
-                setTooltip(t =>
-                  t && Math.abs(t.x - cx) < 1 ? null : { x: cx, y: cy, label: p.val.toString() }
+                setTooltip(prev =>
+                  prev && Math.abs(prev.x - cx) < 1 ? null : { x: cx, y: cy, label: p.val.toString() }
                 )
               }
             />
@@ -183,7 +185,7 @@ export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
               fill="#9B7B6E"
               textAnchor="middle"
             >
-              {w === 0 ? 'birth' : `w${w}`}
+              {w === 0 ? t('chart.birth') : t('chart.week', { n: w })}
             </text>
           </g>
         ))}
@@ -242,12 +244,12 @@ export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
           <svg width="18" height="8">
             <line x1="0" y1="4" x2="18" y2="4" stroke="#E8875A" strokeWidth="1" strokeDasharray="3 2" strokeOpacity="0.6" />
           </svg>
-          <span className="text-xs text-textMuted">median</span>
+          <span className="text-xs text-textMuted">{t('chart.median')}</span>
         </div>
         {measured.length > 0 && (
           <div className="flex items-center gap-1">
             <div className="w-2 h-2 rounded-full bg-peachDark" />
-            <span className="text-xs text-textMuted">measured</span>
+            <span className="text-xs text-textMuted">{t('chart.measured')}</span>
           </div>
         )}
       </div>
