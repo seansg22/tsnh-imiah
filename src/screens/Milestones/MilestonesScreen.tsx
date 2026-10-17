@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import { Search } from 'lucide-react';
+import { Search, Sparkles } from 'lucide-react';
+import { AdviceModal } from '../../components/ai/AdviceModal';
 import { getMilestones } from '../../data/localized';
 import { useLang } from '../../i18n/langContext';
 import { useApp } from '../../context/appStateContext';
@@ -27,6 +28,7 @@ export function MilestonesScreen() {
   const { currentWeek } = useBabyAge(state.babyProfile?.birthDate ?? null);
   const [filter, setFilter] = useState<CategoryFilter>('all');
   const [search, setSearch] = useState('');
+  const [showAdvice, setShowAdvice] = useState(false);
   const stickyRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -51,10 +53,22 @@ export function MilestonesScreen() {
   return (
     <div className="fade-in">
       <div className="px-4 pt-6">
-        <h1 className="text-2xl font-extrabold text-app-text">{t('ms.title')}</h1>
-        <p className="text-textMuted text-sm font-medium mt-1">
-          {t('ms.achieved', { done: achievedCount, total: milestones.length })}
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-extrabold text-app-text">{t('ms.title')}</h1>
+            <p className="text-textMuted text-sm font-medium mt-1">
+              {t('ms.achieved', { done: achievedCount, total: milestones.length })}
+            </p>
+          </div>
+          <button
+            onClick={() => setShowAdvice(true)}
+            aria-label={t('ai.advice.open')}
+            className="flex-shrink-0 flex items-center gap-1.5 h-9 pl-3 pr-3.5 rounded-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500 text-white text-xs font-extrabold shadow-md shadow-fuchsia-300/50 active:scale-95 transition-transform"
+          >
+            <Sparkles size={16} strokeWidth={2.5} />
+            {t('ai.title')}
+          </button>
+        </div>
         <div className="w-full bg-peachLight rounded-full h-2 mt-2">
           <div
             className="bg-peach h-2 rounded-full transition-all"
@@ -121,6 +135,7 @@ export function MilestonesScreen() {
           );
         })}
       </div>
+      {showAdvice && <AdviceModal kind="milestones" onClose={() => setShowAdvice(false)} />}
     </div>
   );
 }
