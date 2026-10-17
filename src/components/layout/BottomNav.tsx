@@ -5,10 +5,23 @@ import { milestones } from '../../data/weeklyDevelopment';
 import { useBabyAge } from '../../hooks/useBabyAge';
 import type { Page } from '../../types';
 
+// Daisy (G-Dragon style): filled center, 6 rounded petals with gaps so it stays crisp at small size
+function DaisyIcon({ size = 22, strokeWidth = 1.8 }: { size?: number; strokeWidth?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth * 0.7} strokeLinecap="round" strokeLinejoin="round">
+      {Array.from({ length: 6 }, (_, i) => (
+        <ellipse key={i} cx="12" cy="5.6" rx="2.6" ry="3.4" transform={`rotate(${i * 60} 12 12)`} />
+      ))}
+      <circle cx="12" cy="12" r="2.2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 const homeOptions: { page: Page; icon: React.ElementType; label: string }[] = [
   { page: 'today',    icon: Home,         label: 'Today'    },
   { page: 'insights', icon: Sparkles,     label: 'Insights' },
   { page: 'food',     icon: Utensils,     label: 'Food'     },
+  { page: 'book',     icon: BookOpenText, label: 'Read'     },
 ];
 
 const progressOptions: { page: Page; icon: React.ElementType; label: string }[] = [
@@ -26,7 +39,7 @@ export function BottomNav() {
   const homeMenuRef = useRef<HTMLDivElement>(null);
 
   const isProgressActive = state.currentPage === 'milestones' || state.currentPage === 'growth' || state.currentPage === 'babyprofile' || state.currentPage === 'wonderweek';
-  const isHomeActive = state.currentPage === 'today' || state.currentPage === 'insights' || state.currentPage === 'food';
+  const isHomeActive = state.currentPage === 'today' || state.currentPage === 'insights' || state.currentPage === 'food' || state.currentPage === 'book';
   const { currentWeek } = useBabyAge(state.babyProfile?.birthDate ?? null);
   const unfinishedMilestones = milestones.filter(
     m => m.weekRange[1] <= currentWeek && !state.achievedMilestones.includes(m.id)
@@ -170,16 +183,16 @@ export function BottomNav() {
           {/* Center spacer for the button */}
           <div className="w-16 flex-shrink-0" />
 
-          {/* Right tabs: Read + Settings */}
+          {/* Right tabs: Mom + Settings */}
           <div className="flex flex-1 justify-end gap-3 pr-3 relative z-20">
             <button
-              onClick={() => navigate('book')}
+              onClick={() => navigate('mom')}
               className={`flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-semibold transition-colors ${
-                state.currentPage === 'book' ? 'text-peachDark' : 'text-textMuted'
+                state.currentPage === 'mom' ? 'text-peachDark' : 'text-textMuted'
               }`}
             >
-              <BookOpenText size={22} strokeWidth={state.currentPage === 'book' ? 2.5 : 1.8} />
-              <span>Read</span>
+              <DaisyIcon size={22} strokeWidth={state.currentPage === 'mom' ? 2.5 : 1.8} />
+              <span>Mom</span>
             </button>
 
             <button
