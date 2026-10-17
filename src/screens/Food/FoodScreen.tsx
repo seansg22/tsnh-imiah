@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { addMonths, differenceInCalendarDays, parseISO } from 'date-fns';
 import {
+  AlertTriangle,
   ArrowLeft,
   Check,
   ChevronRight,
@@ -180,7 +181,10 @@ function RecipeDetail({
 
         {recipe.allergens.length > 0 && (
           <div className="mt-3 rounded-xl bg-peachLight/40 p-3">
-            <p className="text-sm font-extrabold text-app-text">{t('food.allergens')}</p>
+            <p className="flex items-center gap-1.5 text-sm font-extrabold text-app-text">
+              <AlertTriangle size={16} strokeWidth={2.4} className="flex-shrink-0 text-amber-600" />
+              {t('food.allergens')}
+            </p>
             <p className="mt-1 text-sm font-semibold leading-relaxed text-textMuted">{recipe.allergens.join(', ')}</p>
           </div>
         )}
@@ -202,6 +206,17 @@ function RecipeDetail({
             ))}
           </ol>
         </section>
+
+        {recipe.directions.some(step => /mash|blend|nghiền|xay/i.test(step)) && (
+          <section className="mt-3 rounded-xl bg-white p-3 shadow-sm">
+            <h2 className="text-base font-extrabold text-app-text">{t('food.mashTitle')}</h2>
+            <ul className="mt-2 list-disc space-y-1.5 pl-5 text-sm font-semibold leading-relaxed text-app-text">
+              {(['food.mashStep1', 'food.mashStep2', 'food.mashStep3', 'food.mashStep4'] as const).map(key => (
+                <li key={key}>{t(key)}</li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         <div className="mt-3 flex gap-3 rounded-xl bg-peachLight/50 p-3">
           <ShieldCheck size={19} strokeWidth={2.4} className="mt-0.5 flex-shrink-0 text-peachDark" />

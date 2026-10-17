@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { format } from 'date-fns';
 import { useLang } from '../../i18n/langContext';
 
-// ponytail: module var resets on F5, survives in-app navigation
-let sessionShown = false;
+// ponytail: once per day, stored as local date
+const KEY = 'banner.foodDiary';
+const today = () => format(new Date(), 'yyyy-MM-dd');
+const shownToday = () => localStorage.getItem(KEY) === today();
 
 interface FoodDiaryBannerProps {
   show: boolean; // true while today has no food note yet
@@ -13,13 +16,13 @@ interface FoodDiaryBannerProps {
 
 export function FoodDiaryBanner({ show, babyName, onNavigate }: FoodDiaryBannerProps) {
   const { t } = useLang();
-  const [dismissed, setDismissed] = useState(sessionShown);
+  const [dismissed, setDismissed] = useState(shownToday);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     if (dismissed || !show) return;
     const t = setTimeout(() => {
-      sessionShown = true;
+      localStorage.setItem(KEY, today());
       setVisible(true);
     }, 1500);
     return () => clearTimeout(t);

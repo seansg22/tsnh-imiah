@@ -106,6 +106,11 @@ export const ui2 = defineStrings(
     'food.allergens': 'Allergens',
     'food.ingredients': 'Ingredients',
     'food.directions': 'Directions',
+    'food.mashTitle': 'How to mash or blend',
+    'food.mashStep1': 'Soft enough? Press with a spoon or fingers. It should squash with no effort.',
+    'food.mashStep2': 'Smooth (6-7 months): mash with the back of a spoon, or blend with a little cooking water.',
+    'food.mashStep3': 'Coarse (8 months+): mash with a fork, keep small soft lumps.',
+    'food.mashStep4': 'Fish and meat: shred first, check for bones.',
 
     // Nav
     'nav.today': 'Today',
@@ -226,6 +231,11 @@ export const ui2 = defineStrings(
     'food.allergens': 'Chất gây dị ứng',
     'food.ingredients': 'Nguyên liệu',
     'food.directions': 'Cách làm',
+    'food.mashTitle': 'Cách nghiền, xay cho bé',
+    'food.mashStep1': 'Đủ mềm chưa? Dùng muỗng hoặc ngón tay ấn nhẹ, thức ăn nát ngay là được nhé mẹ.',
+    'food.mashStep2': 'Nghiền mịn (6-7 tháng): dùng lưng muỗng ép mịn, hoặc xay với chút nước nấu.',
+    'food.mashStep3': 'Nghiền thô (8 tháng+): dùng nĩa nghiền, chừa vài cục mềm nhỏ.',
+    'food.mashStep4': 'Cá và thịt: xé nhỏ trước, kiểm tra xương.',
 
     'nav.today': 'Hôm nay',
     'nav.insights': 'Gợi ý',

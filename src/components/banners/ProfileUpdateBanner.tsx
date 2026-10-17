@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useLang } from '../../i18n/langContext';
-import { parseISO, getDate } from 'date-fns';
+import { parseISO, getDate, format } from 'date-fns';
 
-// ponytail: module var resets on F5, survives in-app navigation
-let monthlySessionShown = false;
+// ponytail: once per day, stored as local date
+const KEY = 'banner.profileUpdate';
+const today = () => format(new Date(), 'yyyy-MM-dd');
+const shownToday = () => localStorage.getItem(KEY) === today();
 
 interface ProfileUpdateBannerProps {
   birthDate: string;
@@ -15,13 +17,13 @@ interface ProfileUpdateBannerProps {
 export function ProfileUpdateBanner({ birthDate, babyName, onNavigate }: ProfileUpdateBannerProps) {
   const isAnniversaryDay = getDate(parseISO(birthDate)) === getDate(new Date());
   const { t } = useLang();
-  const [dismissed, setDismissed] = useState(monthlySessionShown);
+  const [dismissed, setDismissed] = useState(shownToday);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     if (dismissed || !isAnniversaryDay) return;
     const t = setTimeout(() => {
-      monthlySessionShown = true;
+      localStorage.setItem(KEY, today());
       setVisible(true);
     }, 1500);
     return () => clearTimeout(t);
