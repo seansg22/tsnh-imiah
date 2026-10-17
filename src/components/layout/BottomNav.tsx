@@ -1,4 +1,4 @@
-import { Home, Star, Sparkles, TrendingUp, Settings, BookOpenText, Baby, CalendarDays, Compass, UserRound, Utensils } from 'lucide-react';
+import { Home, Star, Sparkles, TrendingUp, Settings, BookOpenText, Baby, CalendarDays, Compass, UserRound, Utensils, Milk } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../context/appStateContext';
 import { useLang } from '../../i18n/langContext';
@@ -30,6 +30,7 @@ const progressOptions: { page: Page; icon: React.ElementType; label: UiKey }[] =
   { page: 'babyprofile', icon: UserRound,  label: 'nav.babyProfile' },
   { page: 'milestones',  icon: Star,       label: 'nav.milestones'   },
   { page: 'growth',      icon: TrendingUp, label: 'nav.growth'       },
+  { page: 'fooddiary',  icon: Milk,       label: 'nav.foodDiary'    },
   { page: 'wonderweek',  icon: CalendarDays, label: 'nav.wonderWeek' },
 ];
 
@@ -41,7 +42,7 @@ export function BottomNav() {
   const menuRef = useRef<HTMLDivElement>(null);
   const homeMenuRef = useRef<HTMLDivElement>(null);
 
-  const isProgressActive = state.currentPage === 'milestones' || state.currentPage === 'growth' || state.currentPage === 'babyprofile' || state.currentPage === 'wonderweek';
+  const isProgressActive = state.currentPage === 'milestones' || state.currentPage === 'growth' || state.currentPage === 'fooddiary' || state.currentPage === 'babyprofile' || state.currentPage === 'wonderweek';
   const isHomeActive = state.currentPage === 'today' || state.currentPage === 'insights' || state.currentPage === 'food' || state.currentPage === 'book';
   const { currentWeek } = useBabyAge(state.babyProfile?.birthDate ?? null);
   const unfinishedMilestones = milestones.filter(

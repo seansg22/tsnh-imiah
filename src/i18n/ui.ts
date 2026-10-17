@@ -5,6 +5,7 @@ import { aiStrings } from './strings/ai';
 import { d4 } from './strings/d4';
 import { d5 } from './strings/d5';
 import { d6 } from './strings/d6';
+import { fd } from './strings/fd';
 
 // en is the source of truth: vi must have exactly the same keys (checked by tsc)
 const baseEn = {
@@ -108,8 +109,8 @@ const baseVi: Record<keyof typeof baseEn, string> = {
 };
 
 // each area module holds its own en/vi pair: both must have the same keys (checked by defineStrings)
-const modules = [ui1, ui2, aiStrings, d4, d5, d6];
-const en = Object.assign({}, baseEn, ...modules.map(m => m.en)) as typeof baseEn & typeof ui1.en & typeof ui2.en & typeof aiStrings.en & typeof d4.en & typeof d5.en & typeof d6.en;
+const modules = [ui1, ui2, aiStrings, d4, d5, d6, fd];
+const en = Object.assign({}, baseEn, ...modules.map(m => m.en)) as typeof baseEn & typeof ui1.en & typeof ui2.en & typeof aiStrings.en & typeof d4.en & typeof d5.en & typeof d6.en & typeof fd.en;
 const vi: Record<keyof typeof en, string> = Object.assign({}, baseVi, ...modules.map(m => m.vi));
 
 export type UiKey = keyof typeof en;

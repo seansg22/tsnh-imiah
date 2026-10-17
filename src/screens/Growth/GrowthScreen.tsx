@@ -114,9 +114,9 @@ export function GrowthScreen() {
         ) : (
           <button
             onClick={() => setShowForm(true)}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-peachLight text-peachDark text-sm font-bold hover:bg-peachLight/30 transition-colors"
+            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border-2 border-dashed border-peachLight text-peachDark text-xs font-bold hover:bg-peachLight/30 transition-colors"
           >
-            <Plus size={18} strokeWidth={2.5} />
+            <Plus size={14} strokeWidth={2.5} />
             {t('growth.add')}
           </button>
         )}

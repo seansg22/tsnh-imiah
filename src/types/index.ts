@@ -80,13 +80,26 @@ export interface KnowledgeEntry {
   content: string;   // Gemini-authored, dated summary of what happened/was discussed in a cleared Ask AI conversation
 }
 
-export type Page = 'onboarding' | 'today' | 'milestones' | 'insights' | 'growth' | 'settings' | 'book' | 'ai' | 'wonderweek' | 'babyprofile' | 'food' | 'mom';
+export interface FoodEntry {
+  id: string; // same as date: one note per day
+  date: string; // "YYYY-MM-DD"
+  momTimes?: number; // how many times mom fed directly that day
+  formulaTimes?: number; // how many formula feeds that day
+  formulaMl?: number; // ml per feed
+  foods?: string[]; // chip keys (fd.food.*) or free text
+  solidTimes?: number; // how many solid meals that day
+  allergy?: string[]; // reactions noticed that day: chip keys (fd.allergy.*) or free text
+  portion?: string; // chip key (spoons|quarter|half|whole) or free text
+}
+
+export type Page = 'onboarding' | 'today' | 'milestones' | 'insights' | 'growth' | 'settings' | 'book' | 'ai' | 'wonderweek' | 'babyprofile' | 'food' | 'mom' | 'fooddiary';
 
 export interface AppState {
   babyProfile: BabyProfile | null;
   achievedMilestones: string[];
   selectedWeek: number;
   growthEntries: GrowthEntry[];
+  foodEntries: FoodEntry[];
   knowledgeBase: KnowledgeEntry[];
   currentPage: Page;
 }
@@ -98,6 +111,8 @@ export type AppAction =
   | { type: 'ADD_GROWTH_ENTRY'; payload: GrowthEntry }
   | { type: 'UPDATE_GROWTH_ENTRY'; payload: GrowthEntry }
   | { type: 'DELETE_GROWTH_ENTRY'; payload: string }
+  | { type: 'UPSERT_FOOD_ENTRY'; payload: FoodEntry }
+  | { type: 'DELETE_FOOD_ENTRY'; payload: string }
   | { type: 'ADD_KNOWLEDGE_ENTRY'; payload: KnowledgeEntry }
   | { type: 'UPDATE_KNOWLEDGE_ENTRY'; payload: KnowledgeEntry }
   | { type: 'DELETE_KNOWLEDGE_ENTRY'; payload: string }

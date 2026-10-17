@@ -12,9 +12,11 @@ import { SettingsScreen } from './screens/Settings/SettingsScreen';
 import { BabyProfileScreen } from './screens/BabyProfile/BabyProfileScreen';
 import { GrowthScreen } from './screens/Growth/GrowthScreen';
 import { AIScreen } from './screens/AI/AIScreen';
+import { FoodDiaryScreen } from './screens/FoodDiary/FoodDiaryScreen';
 import { FoodScreen } from './screens/Food/FoodScreen';
 import { MomScreen } from './screens/Mom/MomScreen';
 import { OverdueBanner } from './components/banners/OverdueBanner';
+import { FoodDiaryBanner } from './components/banners/FoodDiaryBanner';
 import { ProfileUpdateBanner } from './components/banners/ProfileUpdateBanner';
 import { WonderWeekCalendar } from './components/milestones/WonderWeekCalendar';
 import { milestones } from './data/weeklyDevelopment';
@@ -73,6 +75,7 @@ function AppContent() {
     food: <FoodScreen />,
     mom: <MomScreen />,
     growth: <GrowthScreen />,
+    fooddiary: <FoodDiaryScreen />,
     settings: <SettingsScreen />,
     babyprofile: <BabyProfileScreen />,
     wonderweek: state.babyProfile ? (
@@ -88,6 +91,13 @@ function AppContent() {
             count={overdueCount}
             babyName={state.babyProfile?.name ?? ''}
             onNavigate={() => dispatch({ type: 'SET_PAGE', payload: 'milestones' })}
+          />
+        )}
+        {state.currentPage !== 'fooddiary' && (
+          <FoodDiaryBanner
+            show={!state.foodEntries.some(e => e.date === new Date().toISOString().split('T')[0])}
+            babyName={state.babyProfile?.name ?? ''}
+            onNavigate={() => dispatch({ type: 'SET_PAGE', payload: 'fooddiary' })}
           />
         )}
         {state.currentPage !== 'babyprofile' && (
