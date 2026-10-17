@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { addMonths, differenceInCalendarDays, parseISO } from 'date-fns';
 import {
   ArrowLeft,
@@ -101,8 +101,24 @@ function RecipeDetail({
   onToggleMade: () => void;
 }) {
   const { t, lang } = useLang();
+  // Swipe right anywhere to go back, like iPhone (pointer events: touch + mouse)
+  const start = useRef<{ x: number; y: number } | null>(null);
   return (
-    <div className="fade-in min-h-screen bg-cream">
+    <div
+      className="fade-in min-h-screen bg-cream"
+      style={{ touchAction: 'pan-y' }}
+      onPointerDown={e => {
+        start.current = { x: e.clientX, y: e.clientY };
+      }}
+      onPointerUp={e => {
+        const s0 = start.current;
+        start.current = null;
+        if (s0 && e.clientX - s0.x > 80 && Math.abs(e.clientY - s0.y) < 60) onBack();
+      }}
+      onPointerCancel={() => {
+        start.current = null;
+      }}
+    >
       <div className="sticky top-0 z-20 flex h-14 items-center justify-between bg-cream/95 px-4 backdrop-blur-[2px]">
         <button type="button" onClick={onBack} className="flex h-9 w-9 items-center justify-center rounded-full bg-peachLight text-peachDark">
           <ArrowLeft size={20} strokeWidth={2.4} />
@@ -233,8 +249,9 @@ export function FoodScreen() {
 
   const madeRecipes = recipeDatabase.filter(recipe => madeIds.includes(recipe.id));
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
+  const listScrollY = useRef(0);
+  useLayoutEffect(() => {
+    window.scrollTo(0, selectedRecipeId ? 0 : listScrollY.current);
   }, [selectedRecipeId]);
 
   if (selectedRecipe) {
@@ -342,7 +359,10 @@ export function FoodScreen() {
             <RecipeCard
               key={recipe.id}
               recipe={recipe}
-              onOpen={() => setSelectedRecipeId(recipe.id)}
+              onOpen={() => {
+                listScrollY.current = window.scrollY;
+                setSelectedRecipeId(recipe.id);
+              }}
             />
           ))}
         </div>
