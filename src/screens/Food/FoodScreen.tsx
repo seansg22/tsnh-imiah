@@ -22,6 +22,7 @@ import { useBabyAge } from '../../hooks/useBabyAge';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import type { BabyRecipe } from '../../data/foodByMonth';
 import { getCategoryLabel, getDifficultyLabel, getFoodData } from '../../data/localizedFood';
+import { chipCls } from '../../components/shared/chipStyle';
 
 function getBabyMonth(totalDays: number) {
   const month = Math.floor(totalDays / 30.4375);
@@ -333,9 +334,7 @@ export function FoodScreen() {
               key={plan.month}
               type="button"
               onClick={() => setSelectedMonth(plan.month)}
-              className={`flex-shrink-0 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
-                selectedMonth === plan.month ? 'bg-peach text-white' : 'bg-warm text-textMuted'
-              }`}
+              className={`flex-shrink-0 rounded-full px-4 py-1.5 text-xs font-bold ${chipCls(selectedMonth === plan.month)}`}
             >
               {t('food.monthPlus', { n: plan.month })}
             </button>

@@ -8,11 +8,13 @@ import {
   Z_LINES,
   valueAtPercentile,
   valueAtZ,
+  metricConfig,
   zScoreOf,
   percentileOfZ,
 } from '../../data/whoGrowthData';
 import { differenceInDays, parseISO } from 'date-fns';
 import { useLang } from '../../i18n/langContext';
+import { chipCls } from '../shared/chipStyle';
 
 interface Props {
   entries: GrowthEntry[];
@@ -21,12 +23,12 @@ interface Props {
   gender: Gender;
 }
 
-type Mode = 'value' | 'percentile' | 'z';
+type Mode = 'percentile' | 'z';
 type View = { start: number; end: number };
 
 const W = 320;
 const H = 210;
-const PAD = { top: 12, right: 50, bottom: 34, left: 34 };
+const PAD = { top: 12, right: 56, bottom: 34, left: 34 };
 const CHART_W = W - PAD.left - PAD.right;
 const CHART_H = H - PAD.top - PAD.bottom;
 const MIN_SPAN = 8;
@@ -65,7 +67,7 @@ export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
   const { t } = useLang();
   const [prefs] = useState(loadPrefs);
   const [mode, setModeState] = useState<Mode>(
-    prefs.mode === 'percentile' || prefs.mode === 'z' ? prefs.mode : 'value',
+    prefs.mode === 'z' ? 'z' : 'percentile', // an older saved 'value' view is now part of 'percentile'
   );
   const setMode = (m: Mode) => {
     setModeState(m);
@@ -83,6 +85,8 @@ export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
     .filter(Boolean)
     .sort((a, b) => a!.week - b!.week) as { week: number; val: number; id: string }[];
 
+  const last = measured.length ? measured[measured.length - 1] : undefined;
+
   // Default view: smallest range that holds every measurement
   const latest = measured.length ? measured[measured.length - 1].week : 0;
   const defaultWeeks = (RANGES.find(r => r.weeks >= latest + 2) ?? RANGES[RANGES.length - 1]).weeks;
@@ -99,11 +103,9 @@ export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
   const pointers = useRef(new Map<number, number>()); // pointerId -> client x
   const gesture = useRef({ dist: 0, moved: false });
 
-  const lines = mode === 'value'
-    ? ([3, 50, 97] as const).map(p => ({ id: p, label: `P${p}`, median: p === 50, at: (w: number) => valueAtPercentile(metric, w, gender, p) }))
-    : mode === 'percentile'
+  const lines = mode === 'percentile'
     ? PERCENTILE_LINES.map(p => ({ id: p, label: `P${p}`, median: p === 50, at: (w: number) => valueAtPercentile(metric, w, gender, p) }))
-    : Z_LINES.map(z => ({ id: z, label: z > 0 ? `+${z}` : `${z}`, median: z === 0, at: (w: number) => valueAtZ(metric, w, gender, z) }));
+    : Z_LINES.map(z => ({ id: z, label: `Z${z > 0 ? '+' : ''}${z}`, median: z === 0, at: (w: number) => valueAtZ(metric, w, gender, z) }));
   const outerLo = lines[0];
   const outerHi = lines[lines.length - 1];
 
@@ -123,6 +125,16 @@ export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
   const toX = (week: number) => PAD.left + ((week - view.start) / (view.end - view.start)) * CHART_W;
   const toY = (val: number) => PAD.top + CHART_H - ((val - yMin) / (yMax - yMin)) * CHART_H;
   const pts = (arr: { w: number; v: number }[]) => arr.map(p => `${toX(p.w)},${toY(p.v)}`).join(' ');
+
+  // label heights: push down where they would touch, then back up if that ran past the bottom
+  const LABEL_GAP = 11;
+  const labelY = lines.map(l => toY(l.at(view.end)));
+  const order = labelY.map((_, i) => i).sort((a, b) => labelY[a] - labelY[b]);
+  for (let k = 1; k < order.length; k++) labelY[order[k]] = Math.max(labelY[order[k]], labelY[order[k - 1]] + LABEL_GAP);
+  for (let k = order.length - 1; k >= 0; k--) {
+    const limit = k === order.length - 1 ? PAD.top + CHART_H : labelY[order[k + 1]] - LABEL_GAP;
+    labelY[order[k]] = Math.min(labelY[order[k]], limit);
+  }
 
   const bandPolygon = `${pts(loPts)} ${pts([...hiPts].reverse())}`;
 
@@ -192,15 +204,12 @@ export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
 
   // compact pills share the row width equally so the whole row always fits
   const pill = (active: boolean, compact = false) =>
-    `${compact ? 'flex-1 px-1' : 'px-2.5'} py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all ${active ? 'bg-peach text-white' : 'bg-warm text-textMuted'}`;
+    `${compact ? 'flex-1 px-1' : 'px-2.5'} py-1 rounded-full text-xs font-bold whitespace-nowrap ${chipCls(active)}`;
 
   return (
     <div>
       {/* View mode */}
       <div className="flex gap-2 mb-2">
-        <button className={pill(mode === 'value')} onClick={() => setMode('value')}>
-          {t('chart.modeValue')}
-        </button>
         <button className={pill(mode === 'percentile')} onClick={() => setMode('percentile')}>
           {t('chart.modePercentile')}
         </button>
@@ -271,17 +280,40 @@ export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
           })}
         </g>
 
-        {/* Line labels */}
-        {lines.map(l => (
+        {/* Latest measurement in a white tag: value, plus P or Z depending on the view */}
+        {last && last.week >= view.start && last.week <= view.end && (() => {
+          const z = zScoreOf(metric, last.week, gender, last.val);
+          const top = `${Math.round(last.val * 100) / 100} ${metricConfig[metric].unit}`;
+          const bottom = mode === 'percentile' ? `P${Math.round(percentileOfZ(z))}` : `Z ${z.toFixed(1)}`;
+          const w = Math.max(top.length * 6.2, bottom.length * 5.4) + 10;
+          const h = 26;
+          const x = toX(last.week);
+          const y = toY(last.val);
+          // centered above the dot, nudged sideways to stay inside the plot
+          const boxX = Math.min(PAD.left + CHART_W - 2 - w, Math.max(PAD.left + 2, x - w / 2));
+          const boxY = Math.max(PAD.top + 2, y - 8 - h);
+          const cx = boxX + w / 2;
+          return (
+            <>
+              <rect x={boxX} y={boxY} width={w} height={h} rx="7" fill="white" stroke="#E8875A" strokeWidth="1" />
+              <text x={cx} y={boxY + 11} fontSize="10" fontWeight="800" fill="#3D2B1F" textAnchor="middle">{top}</text>
+              <text x={cx} y={boxY + 21} fontSize="9" fontWeight="700" fill="#E8875A" textAnchor="middle">{bottom}</text>
+            </>
+          );
+        })()}
+
+        {/* Line labels, nudged apart so close lines (like P85 and P97) stay readable */}
+        {lines.map((l, i) => (
           <text
             key={l.id}
             x={PAD.left + CHART_W + 3}
-            y={toY(l.at(view.end))}
+            y={labelY[i]}
             fontSize="11"
-            fill="#9B7B6E"
             dominantBaseline="middle"
           >
-            {mode === 'value' ? `${l.label} ${Math.round(l.at(view.end) * 10) / 10}` : l.label}
+            {/* name in bold dark, its value lighter, so the two numbers do not run together */}
+            <tspan fontWeight="700" fill={l.median ? '#E8875A' : '#3D2B1F'}>{l.label}</tspan>
+            <tspan dx="4" fill="#9B7B6E">{Math.round(l.at(view.end) * 10) / 10}</tspan>
           </text>
         ))}
 

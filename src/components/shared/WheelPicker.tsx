@@ -34,7 +34,7 @@ export function WheelPicker({ options, value, onChange, unit }: Props) {
   }
 
   return (
-    <div className="relative mx-auto w-28">
+    <div className="relative w-full">
     <div className="relative rounded-xl bg-cream border border-peachLight overflow-hidden" style={{ height: ITEM_H * ROWS }}>
       <div
         className="absolute inset-x-0 pointer-events-none border-y border-peach bg-peachLight/40"
@@ -64,9 +64,9 @@ export function WheelPicker({ options, value, onChange, unit }: Props) {
         type="button"
         aria-label="Clear"
         onClick={() => { ref.current?.scrollTo({ top: 0, behavior: 'smooth' }); onChange(undefined); }}
-        className="absolute -right-8 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-warm text-textMuted hover:text-peachDark transition-colors"
+        className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-full bg-warm text-textMuted hover:text-peachDark transition-colors"
       >
-        <X size={14} strokeWidth={2.5} />
+        <X size={12} strokeWidth={2.5} />
       </button>
     )}
     </div>

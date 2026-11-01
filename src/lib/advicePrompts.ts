@@ -3,7 +3,8 @@ import { milestones } from '../data/weeklyDevelopment';
 import { getFeeding } from '../constants/babyDefaults';
 import { MAX_WEEK, percentileOfZ, zScoreOf, type GrowthMetric } from '../data/whoGrowthData';
 import type { Lang } from '../i18n/langContext';
-import type { AppState } from '../types';
+import { solidsOf } from './solids';
+import type { AppState, MilkFields } from '../types';
 
 export type AdviceKind = 'growth' | 'fooddiary' | 'milestones';
 
@@ -44,12 +45,15 @@ function growthData(state: AppState): string {
 
 function foodData(state: AppState): string {
   const rows = [...state.foodEntries].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 14).reverse().map(e => {
+    const milk = (m: MilkFields, when: string) => [
+      m.momTimes !== undefined && `${when} mom's milk ${m.momTimes}x${m.momMl !== undefined ? ` of ${m.momMl} ml` : ''}${m.momWays?.length ? ` (${m.momWays.map(w => (w === 'breast' ? 'breastfed' : 'from bottle')).join(' + ')})` : ''}`,
+      m.formulaTimes !== undefined && `${when} formula ${m.formulaTimes}x${m.formulaMl !== undefined ? ` of ${m.formulaMl} ml` : ''}`,
+    ];
     const parts = [
-      e.momTimes !== undefined && `breastfeeds ${e.momTimes}x`,
-      e.formulaTimes !== undefined && `formula ${e.formulaTimes}x${e.formulaMl !== undefined ? ` of ${e.formulaMl} ml` : ''}`,
-      e.solidTimes !== undefined && `solid meals ${e.solidTimes}x`,
-      e.foods?.length && `foods: ${e.foods.join(', ')}`,
-      e.portion && `portion: ${e.portion}`,
+      ...milk(e, 'daytime'),
+      ...(e.night ? milk(e.night, 'night') : []),
+      ...solidsOf(e).map((m, i) => `${m.snack ? 'snack' : 'solid'} ${i + 1}: ${m.foods.join(', ')}${m.portion ? ` (${m.portion})` : ''}`),
+      e.poop && `poop ${[e.poop.times !== undefined && `${e.poop.times}x`, e.poop.colors?.join('/'), e.poop.textures?.join('/')].filter(Boolean).join(', ')}`,
       e.allergy?.length && `reactions: ${e.allergy.join(', ')}`,
     ].filter(Boolean);
     return `- ${e.date}: ${parts.join('; ')}`;

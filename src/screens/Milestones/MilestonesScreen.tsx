@@ -7,6 +7,7 @@ import { useApp } from '../../context/appStateContext';
 import { useBabyAge } from '../../hooks/useBabyAge';
 import { MilestoneItem } from '../../components/milestones/MilestoneItem';
 import type { Milestone } from '../../types';
+import { chipCls } from '../../components/shared/chipStyle';
 
 const groups = [
   { label: 'ms.g1' as const,    range: [0,   4]   as [number, number] },
@@ -97,9 +98,7 @@ export function MilestonesScreen() {
             <button
               key={cat}
               onClick={() => handleFilterChange(cat)}
-              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold capitalize transition-all ${
-                filter === cat ? 'bg-peach text-white' : 'bg-warm text-textMuted'
-              }`}
+              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold capitalize ${chipCls(filter === cat)}`}
             >
               {t(`cat.${cat}`)}
             </button>

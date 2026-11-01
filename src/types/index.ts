@@ -80,16 +80,36 @@ export interface KnowledgeEntry {
   content: string;   // Gemini-authored, dated summary of what happened/was discussed in a cleared Ask AI conversation
 }
 
-export interface FoodEntry {
+export interface MilkFields {
+  momTimes?: number; // how many times mom fed directly
+  momMl?: number; // ml per mom's milk feed
+  momWays?: ('breast' | 'bottle')[]; // how mom's milk was given: straight from the breast and/or from a bottle
+  formulaTimes?: number; // how many formula feeds
+  formulaMl?: number; // ml per formula feed
+}
+
+export interface SolidMeal {
+  foods: string[]; // chip keys (fd.food.*) or free text
+  snack?: boolean; // a snack between main meals (bữa phụ)
+  portion?: string; // "50 ml", or older saved text (chip key spoons|quarter|half|whole, "50 g")
+}
+
+export interface PoopLog {
+  times?: number;
+  colors?: string[]; // keys of POOP_COLORS
+  textures?: string[]; // POOP_TEXTURES
+}
+
+export interface FoodEntry extends MilkFields { // the milk fields are the daytime milk
+  night?: MilkFields; // night-time milk
+  poop?: PoopLog;
   id: string; // same as date: one note per day
   date: string; // "YYYY-MM-DD"
-  momTimes?: number; // how many times mom fed directly that day
-  formulaTimes?: number; // how many formula feeds that day
-  formulaMl?: number; // ml per feed
-  foods?: string[]; // chip keys (fd.food.*) or free text
-  solidTimes?: number; // how many solid meals that day
+  solids?: SolidMeal[]; // one item per solid meal that day
+  foods?: string[]; // older entries: one solid meal, see solidsOf()
+  solidTimes?: number; // older entries only
   allergy?: string[]; // reactions noticed that day: chip keys (fd.allergy.*) or free text
-  portion?: string; // chip key (spoons|quarter|half|whole) or free text
+  portion?: string; // older entries only
 }
 
 export type Page = 'onboarding' | 'today' | 'milestones' | 'insights' | 'growth' | 'settings' | 'ai' | 'wonderweek' | 'babyprofile' | 'food' | 'mom' | 'fooddiary';

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Pencil, Sparkles } from 'lucide-react';
+import { Plus, Trash2, Pencil, Sparkles, Sun, Moon, Utensils, TriangleAlert, Baby } from 'lucide-react';
 import { parseISO, differenceInWeeks } from 'date-fns';
 import { AdviceModal } from '../../components/ai/AdviceModal';
 import { useLang } from '../../i18n/langContext';
@@ -8,7 +8,12 @@ import { formatDate } from '../../i18n/date';
 import { useApp } from '../../context/appStateContext';
 import { FoodDiaryForm } from '../../components/food/FoodDiaryForm';
 import { ALLERGIES, FOODS, PORTIONS } from '../../components/food/foodOptions';
-import type { FoodEntry } from '../../types';
+import { solidsOf } from '../../lib/solids';
+import type { LucideIcon } from 'lucide-react';
+import type { FoodEntry, MilkFields } from '../../types';
+
+interface Row { name: string; parts: unknown[]; snack?: boolean }
+const hasMom = (m: MilkFields) => m.momTimes !== undefined || m.momMl !== undefined || !!m.momWays?.length;
 
 export function FoodDiaryScreen() {
   const { t, lang } = useLang();
@@ -74,27 +79,25 @@ export function FoodDiaryScreen() {
         {entries.length === 0 && <p className="text-xs text-textMuted">{t('fd.empty')}</p>}
         {[...entries].sort((a, b) => b.date.localeCompare(a.date)).map(entry => {
           const ageWeeks = birthDate ? differenceInWeeks(parseISO(entry.date), parseISO(birthDate)) : null;
-          const times = (n?: number) => (n !== undefined ? t('fd.timesVal', { n }) : undefined);
-          // one fact per line
-          const milkLines = [
-            entry.momTimes !== undefined && `${t('fd.momMilk')}: ${times(entry.momTimes)}`,
-            (entry.formulaTimes !== undefined || entry.formulaMl !== undefined) && `${t('fd.formula')}${entry.formulaTimes !== undefined ? `: ${times(entry.formulaTimes)}` : ''}`,
-            entry.formulaMl !== undefined && t('fd.mlEach', { n: entry.formulaMl }),
-          ].filter(Boolean);
+          // "name · detail · detail": the name is bold, the details are muted
+          const milkRowsOf = (m: MilkFields): Row[] => [
+            hasMom(m) && { name: t('fd.momMilk'), parts: [m.momTimes !== undefined && `${m.momTimes}×`, m.momMl !== undefined && `${m.momMl} ml`, m.momWays?.length && m.momWays.map(w => t(w === 'breast' ? 'fd.wayBreast' : 'fd.wayBottle')).join(' + ')] },
+            (m.formulaTimes !== undefined || m.formulaMl !== undefined) && { name: t('fd.formula'), parts: [m.formulaTimes !== undefined && `${m.formulaTimes}×`, m.formulaMl !== undefined && `${m.formulaMl} ml`] },
+          ].filter(Boolean) as Row[];
           const allergyLines = entry.allergy?.map(a => ((ALLERGIES as readonly string[]).includes(a) ? t(`fd.allergy.${a}` as UiKey) : a)) ?? [];
-          const solidLines = entry.foods
+          const poopItems = entry.poop
             ? [
-                entry.foods.map(foodLabel).join(', '),
-                times(entry.solidTimes),
-                entry.portion && `${portionLabel(entry.portion)} ${t('fd.each')}`,
-              ].filter(Boolean)
+                entry.poop.times !== undefined && `${entry.poop.times}×`,
+                entry.poop.colors?.length && entry.poop.colors.map(c => t(`fd.poopColor.${c}` as UiKey)).join(', '),
+                entry.poop.textures?.length && entry.poop.textures.map(x => t(`fd.poopTexture.${x}` as UiKey)).join(', '),
+              ].filter(Boolean) as string[]
             : [];
-          const section = (title: string, lines: unknown[]) => (
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-peachDark">{title}</p>
-              {lines.map((l, i) => <p key={i} className="text-xs text-app-text font-semibold">{String(l)}</p>)}
-            </div>
-          );
+          const blocks: { title: string; Icon: LucideIcon; rows: Row[] }[] = [
+            { title: t('fd.milkDay'), Icon: Sun, rows: milkRowsOf(entry) },
+            { title: t('fd.milkNight'), Icon: Moon, rows: entry.night ? milkRowsOf(entry.night) : [] },
+            { title: t('fd.solid'), Icon: Utensils, rows: solidsOf(entry).map(m => ({ name: m.foods.map(foodLabel).join(', '), parts: [m.portion && portionLabel(m.portion)], snack: m.snack })) },
+            { title: t('fd.poop'), Icon: Baby, rows: poopItems.length ? [{ name: poopItems[0], parts: poopItems.slice(1) }] : [{ name: t('fd.noPoop'), parts: [] }] },
+          ].filter(b => b.rows.length > 0);
           return (
             <div
               key={entry.id}
@@ -120,16 +123,33 @@ export function FoodDiaryScreen() {
                   <Trash2 size={15} strokeWidth={2} />
                 </button>
               </div>
-              {(milkLines.length > 0 || solidLines.length > 0) && (
-                <div className="grid grid-cols-2 gap-3 mt-1 pr-3">
-                  {milkLines.length > 0 && section(t('fd.milk'), milkLines)}
-                  {solidLines.length > 0 && section(t('fd.solid'), solidLines)}
+              {blocks.length > 0 && (
+                <div className="mt-2 pr-3 space-y-2.5">
+                  {blocks.map(({ title, Icon, rows }) => (
+                    <div key={title} className="flex gap-2">
+                      <Icon size={14} strokeWidth={2.5} className="text-peachDark mt-0.5 shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-peachDark">{title}</p>
+                        {rows.map((row, i) => {
+                          const parts = row.parts.filter(Boolean);
+                          return (
+                            <p key={i} className="text-sm leading-snug">
+                              <span className="font-semibold text-app-text">{row.name}</span>
+                              {parts.length > 0 && <span className="text-textMuted"> · {parts.join(' · ')}</span>}
+                              {row.snack && <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-peachLight text-peachDark text-[10px] font-bold align-middle">{t('fd.snack')}</span>}
+                            </p>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
               {allergyLines.length > 0 && (
-                <p className="mt-1 pr-3 text-xs font-semibold text-red-500">
-                  {t('fd.allergy')}: {allergyLines.join(', ')}
-                </p>
+                <div className="mt-2 pr-3 flex gap-2 items-start text-red-500">
+                  <TriangleAlert size={14} strokeWidth={2.5} className="mt-0.5 shrink-0" />
+                  <p className="text-sm font-semibold leading-snug">{t('fd.allergy')}: {allergyLines.join(', ')}</p>
+                </div>
               )}
             </div>
           );

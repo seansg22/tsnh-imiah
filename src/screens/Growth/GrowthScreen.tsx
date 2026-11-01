@@ -9,6 +9,7 @@ import { GrowthChart } from '../../components/growth/GrowthChart';
 import { GrowthEntryForm } from '../../components/growth/GrowthEntryForm';
 import { type GrowthMetric, metricConfig, zScoreOf, percentileOfZ, MAX_WEEK } from '../../data/whoGrowthData';
 import type { GrowthEntry } from '../../types';
+import { chipCls } from '../../components/shared/chipStyle';
 
 const metrics: GrowthMetric[] = ['weight', 'length', 'head'];
 
@@ -55,7 +56,7 @@ export function GrowthScreen() {
     const week = differenceInDays(parseISO(entry.date), parseISO(birthDate)) / 7;
     if (val === undefined || !birthDate || week < 0 || week > MAX_WEEK) return null;
     const z = zScoreOf(m, week, gender, val);
-    return { p: percentileOfZ(z) };
+    return { p: percentileOfZ(z), z };
   }
 
   const entriesForMetric = entries.filter(e => e[activeMetric] !== undefined);
@@ -86,9 +87,7 @@ export function GrowthScreen() {
           <button
             key={m}
             onClick={() => setActiveMetric(m)}
-            className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
-              activeMetric === m ? 'bg-peach text-white' : 'bg-warm text-textMuted'
-            }`}
+            className={`px-3 py-1 rounded-full text-xs font-bold ${chipCls(activeMetric === m)}`}
           >
             {t(`growth.metric.${m}`)}
           </button>
@@ -147,47 +146,53 @@ export function GrowthScreen() {
             return (
               <div
                 key={entry.id}
-                className={`bg-white rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm transition-opacity ${isEditing ? 'opacity-50' : ''}`}
+                className={`bg-white rounded-xl pl-4 pr-1 py-2.5 shadow-sm transition-opacity ${isEditing ? 'opacity-50' : ''}`}
               >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-app-text">
+                <div className="flex items-center gap-2">
+                  <p className="flex-1 min-w-0 text-sm font-bold text-app-text">
                     {formatDate(parseISO(entry.date), 'dd MMM yyyy', lang)}
+                    {ageWeeks !== null && ageWeeks >= 0 && (
+                      <span className="ml-2 text-xs font-medium text-textMuted">{t('growth.weekN', { n: ageWeeks })}</span>
+                    )}
                   </p>
-                  {ageWeeks !== null && ageWeeks >= 0 && (
-                    <p className="text-xs text-textMuted">{t('growth.weekN', { n: ageWeeks })}</p>
-                  )}
-                  <div className="flex gap-4 mt-1 flex-wrap">
-                    {metrics.map(m => {
-                      const val = entry[m];
-                      if (val === undefined) return null;
-                      const st = statOf(entry, m);
-                      return (
-                        <div key={m}>
-                          <span className="text-xs text-app-text font-semibold">
-                            {m === 'weight' ? `${val} kg` : m === 'length' ? `${val} cm` : t('growth.headVal', { n: val })}
-                          </span>
-                          {st && (
-                            <p className={`text-xs ${st.p > 97 ? 'text-red-500 font-bold' : st.p < 3 ? 'text-purple-500 font-bold' : 'text-green-600'}`}>
-                              P{Math.round(st.p)}
-                            </p>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <button
+                    onClick={() => handleEdit(entry)}
+                    className="p-1.5 text-textMuted hover:text-peach transition-colors flex-shrink-0"
+                  >
+                    <Pencil size={15} strokeWidth={2} />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(entry.id)}
+                    className="p-1.5 text-textMuted hover:text-red-400 transition-colors flex-shrink-0"
+                  >
+                    <Trash2 size={15} strokeWidth={2} />
+                  </button>
                 </div>
-                <button
-                  onClick={() => handleEdit(entry)}
-                  className="p-2 text-textMuted hover:text-peach transition-colors flex-shrink-0"
-                >
-                  <Pencil size={15} strokeWidth={2} />
-                </button>
-                <button
-                  onClick={() => handleDelete(entry.id)}
-                  className="p-2 text-textMuted hover:text-red-400 transition-colors flex-shrink-0"
-                >
-                  <Trash2 size={15} strokeWidth={2} />
-                </button>
+                <div className="grid grid-cols-3 gap-2 mt-2 pr-3">
+                  {metrics.map(m => {
+                    const val = entry[m];
+                    const st = val === undefined ? null : statOf(entry, m);
+                    const tone = !st ? '' : st.p > 97 ? 'bg-red-50 text-red-500' : st.p < 3 ? 'bg-purple-50 text-purple-500' : 'bg-green-50 text-green-600';
+                    return (
+                      <div key={m} className="min-w-0">
+                        <p className="text-xs font-bold text-peachDark mb-0.5">{t(`growth.metric.${m}`)}</p>
+                        {val === undefined ? (
+                          <p className="text-sm text-textMuted">-</p>
+                        ) : (
+                          <>
+                            <p className="text-sm font-semibold text-app-text leading-snug">{m === 'weight' ? `${val} kg` : `${val} cm`}</p>
+                            {st && (
+                              <div className="mt-0.5 flex flex-col items-start gap-0.5">
+                                <span className={`px-1.5 py-0.5 rounded-full text-[11px] font-bold ${tone}`}>P{Math.round(st.p)}</span>
+                                <span className="text-xs text-textMuted">Z {st.z.toFixed(1)}</span>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             );
           })}

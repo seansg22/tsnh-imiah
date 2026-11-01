@@ -14,6 +14,15 @@ pnpm lint --fix && pnpm build
 
 `pnpm lint --fix` auto-fixes style issues. `pnpm build` runs `tsc -b && vite build` — catches type errors and unused variables that `tsc --noEmit` misses.
 
+## Changing saved data
+
+Users already have data in `localStorage`. When a feature changes the shape of saved data (new, renamed or removed fields):
+
+1. Keep old entries readable. Add the new fields as optional, keep the old ones in the type, and convert old to new in a small pure function (e.g. `solidsOf` in `src/lib/solids.ts`).
+2. Write a unit test next to it (`*.test.ts`) that feeds old-shaped data through the conversion. Cover the old shape, an empty entry, and an entry that has both old and new fields.
+3. Also test the edit round trip: old entry in, form seed, form output. Nothing the user saved before may be lost or hidden.
+4. Run `pnpm test` before reporting done. It also runs at pre-commit.
+
 ## Adding a new page
 
 1. **`src/types/index.ts`** — add the page name to the `Page` union type.
