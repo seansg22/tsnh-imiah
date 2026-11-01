@@ -98,6 +98,10 @@ function milestoneData(state: AppState): string {
   ].join('\n\n');
 }
 
+const SLEEP_TRAINING_RULE = `
+- Add a third short section called "Sleep training". Say if the baby's age suits it (formal sleep training is not advised before about 4 months, so give soothing and routine tips instead). If it suits, suggest one gentle method to try next, like a steady bedtime routine, putting baby down drowsy but awake, or gradual check-ins.
+- Use the diary to judge it: how long baby takes to fall asleep, how baby falls asleep (rocked, fed, carried), night wake-ups and night feeds.`;
+
 // Hardcoded on purpose: the user cannot change what is asked.
 export function buildAdvicePrompt(kind: AdviceKind, state: AppState, lang: Lang) {
   const topic = { growth: 'growth (weight, length, head circumference)', fooddiary: 'feeding and food diary', milestones: 'developmental milestones', sleep: 'sleep (naps and night sleep)' }[kind];
@@ -106,7 +110,7 @@ Rules:
 - Always answer in ${lang === 'vi' ? 'Vietnamese, warm and a little cute but not over the top' : 'English'}.
 - Review the baby's ${topic} data and give: 1) the current situation, 2) next steps.
 - Use two short sections with bullet points, 2 to 4 bullets each, one concise sentence per bullet.
-- Be practical and age-aware. If something may need a doctor, say so gently.`;
+- Be practical and age-aware. If something may need a doctor, say so gently.${kind === 'sleep' ? SLEEP_TRAINING_RULE : ''}`;
   const data = { growth: growthData, fooddiary: foodData, milestones: milestoneData, sleep: sleepData }[kind](state);
   const heading = { growth: 'Growth entries', fooddiary: 'Recent food diary (up to 14 days)', milestones: 'Milestones', sleep: 'Recent sleep diary (up to 14 days)' }[kind];
   const user = `${babyInfo(state)}\n\n${heading}:\n${data}\n\nWhat is the current situation and what should we do next?`;

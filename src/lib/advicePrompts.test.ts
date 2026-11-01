@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { foodData, sleepData } from './advicePrompts';
+import { buildAdvicePrompt, foodData, sleepData } from './advicePrompts';
 import type { AppState, FoodEntry, SleepEntry } from '../types';
 
 const stateWith = (food: FoodEntry[], sleep: SleepEntry[] = []) => ({ foodEntries: food, sleepEntries: sleep }) as unknown as AppState;
@@ -41,5 +41,22 @@ describe('sleep diary sent to the AI', () => {
 
   it('says so when there is nothing yet', () => {
     expect(sleepData(stateWith([]))).toBe('No sleep entries yet.');
+  });
+});
+
+describe('advice prompt for the sleep diary', () => {
+  const state = {
+    babyProfile: { name: 'Mi', birthDate: '2026-04-16', gender: 'girl', feedingMethod: 'breast' },
+    foodEntries: [],
+    sleepEntries: [{ id: 'n', date: '2026-11-01', kind: 'nap', start: '13:00', end: '14:00' }],
+  } as unknown as AppState;
+
+  it('asks for sleep training advice, other topics do not', () => {
+    expect(buildAdvicePrompt('sleep', state, 'en').system).toContain('Sleep training');
+    expect(buildAdvicePrompt('fooddiary', state, 'en').system).not.toContain('Sleep training');
+  });
+
+  it('sends the sleep diary as data', () => {
+    expect(buildAdvicePrompt('sleep', state, 'en').user).toContain('Recent sleep diary');
   });
 });
