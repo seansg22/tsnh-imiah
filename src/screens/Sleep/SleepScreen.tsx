@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Plus, Pencil, Trash2, Sun, Moon, Sparkles } from 'lucide-react';
 import { parseISO, differenceInWeeks } from 'date-fns';
 import { useLang } from '../../i18n/langContext';
@@ -6,6 +6,7 @@ import type { UiKey } from '../../i18n/ui';
 import { formatDate } from '../../i18n/date';
 import { useApp } from '../../context/appStateContext';
 import { AdviceModal } from '../../components/ai/AdviceModal';
+import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { SleepForm } from '../../components/sleep/SleepForm';
 import { formatDuration, groupByDay, sleepMinutes } from '../../lib/sleep';
 import type { SleepEntry, SleepKind } from '../../types';
@@ -16,10 +17,23 @@ export function SleepScreen() {
   // kind is set when adding; editing carries the entry (its kind decides the form)
   const [form, setForm] = useState<{ kind: SleepKind; entry?: SleepEntry } | null>(null);
   const [showAdvice, setShowAdvice] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const birthDate = state.babyProfile?.birthDate ?? '';
   const entries = state.sleepEntries;
   const days = groupByDay(entries);
+
+  // the popup opens over the page: remember where we were and go back there when it closes
+  const savedY = useRef<number | null>(null);
+  const open = (next: { kind: SleepKind; entry?: SleepEntry }) => {
+    savedY.current = window.scrollY;
+    setForm(next);
+  };
+  useEffect(() => {
+    if (form || savedY.current === null) return;
+    window.scrollTo({ top: savedY.current, behavior: 'instant' });
+    savedY.current = null;
+  }, [form]);
 
   function handleSave(entry: SleepEntry) {
     dispatch({ type: 'UPSERT_SLEEP_ENTRY', payload: entry });
@@ -43,10 +57,10 @@ export function SleepScreen() {
           <span className="font-semibold text-app-text">{e.start} - {e.end}</span>
           <span className="text-textMuted"> · {details.join(' · ')}</span>
         </p>
-        <button onClick={() => setForm({ kind: e.kind, entry: e })} className="p-1 text-textMuted hover:text-peach transition-colors flex-shrink-0">
+        <button onClick={() => open({ kind: e.kind, entry: e })} className="p-1 text-textMuted hover:text-peach transition-colors flex-shrink-0">
           <Pencil size={14} strokeWidth={2} />
         </button>
-        <button onClick={() => dispatch({ type: 'DELETE_SLEEP_ENTRY', payload: e.id })} className="p-1 text-textMuted hover:text-red-400 transition-colors flex-shrink-0">
+        <button onClick={() => setDeleteId(e.id)} className="p-1 text-textMuted hover:text-red-400 transition-colors flex-shrink-0">
           <Trash2 size={14} strokeWidth={2} />
         </button>
       </div>
@@ -75,11 +89,11 @@ export function SleepScreen() {
 
       {/* naps and night sleep are added separately; a day can have many naps */}
       <div className="px-4 mb-4 grid grid-cols-2 gap-2">
-        <button onClick={() => setForm({ kind: 'nap' })} className={addBtn}>
+        <button onClick={() => open({ kind: 'nap' })} className={addBtn}>
           <Plus size={14} strokeWidth={2.5} />
           {t('sl.addNap')}
         </button>
-        <button onClick={() => setForm({ kind: 'night' })} className={addBtn}>
+        <button onClick={() => open({ kind: 'night' })} className={addBtn}>
           <Plus size={14} strokeWidth={2.5} />
           {t('sl.addNight')}
         </button>
@@ -112,7 +126,7 @@ export function SleepScreen() {
               </div>
             );
           return (
-            <div key={day.date} className="bg-white rounded-xl px-4 py-2.5 shadow-sm">
+            <div key={day.date} data-sleep-day className="scroll-mt-4 bg-white rounded-xl px-4 py-2.5 shadow-sm">
               <p className="text-sm font-bold text-app-text">
                 {formatDate(parseISO(day.date), 'dd MMM yyyy', lang)}
                 {ageWeeks !== null && ageWeeks >= 0 && (
@@ -133,6 +147,12 @@ export function SleepScreen() {
       </div>
 
       <div className="pb-6" />
+      {deleteId && (
+        <ConfirmDialog
+          onConfirm={() => { dispatch({ type: 'DELETE_SLEEP_ENTRY', payload: deleteId }); setDeleteId(null); }}
+          onCancel={() => setDeleteId(null)}
+        />
+      )}
       {showAdvice && <AdviceModal kind="sleep" onClose={() => setShowAdvice(false)} />}
     </div>
   );

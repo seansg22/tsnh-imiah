@@ -46,7 +46,7 @@ export function GrowthEntryForm({ onSave, onCancel, initialEntry }: Props) {
       <div className="space-y-3">
         <div>
           <label className="text-xs font-semibold text-textMuted block mb-1.5 uppercase tracking-wide">{t('growth.date')}</label>
-          <DateInput value={date} max={today} onChange={setDate} />
+          <DateInput value={date} max={today} onChange={setDate} compact />
         </div>
 
         <div className="grid grid-cols-3 gap-2">

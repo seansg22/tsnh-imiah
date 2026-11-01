@@ -7,6 +7,7 @@ import type { Lang } from '../i18n/langContext';
 import { solidsOf } from './solids';
 import { formatDuration, groupByDay, sleepMinutes } from './sleep';
 import { milkTotals } from './milkTotal';
+import { dayMilksOf } from './dayMilks';
 import type { AppState, MilkFields, SleepEntry } from '../types';
 
 export type AdviceKind = 'growth' | 'fooddiary' | 'milestones' | 'sleep';
@@ -72,7 +73,7 @@ export function foodData(state: AppState): string {
       m.formulaTimes !== undefined && `${when} formula ${m.formulaTimes}x${m.formulaMl !== undefined ? ` of ${m.formulaMl} ml` : ''}`,
     ];
     const parts = [
-      ...milk(e, 'daytime'),
+      ...dayMilksOf(e).flatMap(m => milk(m, 'daytime')),
       ...(e.night ? milk(e.night, 'night') : []),
       milkTotals(e).all.ml > 0 && `total milk ${milkTotals(e).all.ml}${milkTotals(e).all.complete ? '' : '+'} ml (daytime ${milkTotals(e).day.ml}, night ${milkTotals(e).night.ml})`,
       ...solidsOf(e).map((m, i) => `${m.snack ? 'snack' : 'solid'} ${i + 1}: ${m.foods.join(', ')}${m.portion ? ` (${m.portion})` : ''}`),

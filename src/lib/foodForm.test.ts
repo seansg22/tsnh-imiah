@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { emptySolid, hasFoods, milkOut, milkSeed, solidOut, solidSeed, withValue } from './foodForm';
+import { emptySolid, hasFoods, milkOut, milkSeed, newMilkRecord, solidOut, solidSeed, withValue } from './foodForm';
 import { solidsOf } from './solids';
 import type { FoodEntry } from '../types';
 
@@ -87,5 +87,12 @@ describe('withValue', () => {
   it('leaves the steps alone when the value is one of them or empty', () => {
     expect(withValue([10, 20], 20)).toEqual([10, 20]);
     expect(withValue([10, 20], undefined)).toEqual([10, 20]);
+  });
+});
+
+describe('newMilkRecord', () => {
+  it('starts on mom milk with 1 feed, and formula is also 1 feed when picked', () => {
+    expect(milkOut(newMilkRecord())).toEqual({ momTimes: 1 });
+    expect(milkOut({ ...newMilkRecord(), kind: 'formula' })).toEqual({ formulaTimes: 1 });
   });
 });

@@ -1,75 +1,123 @@
-import { useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { useRef, useState } from 'react';
 
-const ITEM_H = 28;
-const ROWS = 3; // visible rows, the middle one is selected
+const STEP_PX = 12; // drag distance for one step (2 ridges)
+const RIDGE_PX = 6;
 
 interface Props {
   options: number[];
-  value: number | undefined; // undefined = nothing picked (first "–" row)
+  value: number | undefined; // undefined = nothing picked
   onChange: (v: number | undefined) => void;
   unit?: string;
-  required?: boolean; // no "–" row and no clear button: a value is always picked
+  required?: boolean; // a value is always picked
 }
 
-// iPhone-style wheel: scroll-snap list, the row under the highlight bar is the value.
+// Looks like a Logitech keyboard volume control in the app's peach colors: a soft
+// display and a ridged roller. Type a number, or drag the roller up/down.
+// The roller shows no value and a tap does nothing, so a page scroll never changes it.
 export function WheelPicker({ options, value, onChange, unit, required }: Props) {
-  const ref = useRef<HTMLDivElement>(null);
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const rows: (number | undefined)[] = required ? options : [undefined, ...options];
+  const drag = useRef<{ y: number; i: number } | null>(null);
+  const rollBase = useRef(0); // roller position kept between drags (movementY is missing on some Safari)
+  const [roll, setRoll] = useState(0); // ridges slide by this many px
+  const [dragging, setDragging] = useState(false);
+  const [typing, setTyping] = useState<string | null>(null); // null = show value
+  const text = typing ?? value?.toString() ?? '';
 
-  // jump to the initial value once; later changes come from the wheel itself
-  useEffect(() => {
-    const i = Math.max(0, rows.indexOf(value));
-    if (ref.current) ref.current.scrollTop = i * ITEM_H;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // current position in options (nearest one if the typed value is not listed)
+  function indexOfValue() {
+    if (value === undefined) return -1;
+    let best = 0;
+    options.forEach((o, i) => { if (Math.abs(o - value) < Math.abs(options[best] - value)) best = i; });
+    return best;
+  }
 
-  function handleScroll() {
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      if (!ref.current) return;
-      const i = Math.min(rows.length - 1, Math.max(0, Math.round(ref.current.scrollTop / ITEM_H)));
-      if (rows[i] !== value) onChange(rows[i]);
-    }, 80);
+  function moveTo(i: number) {
+    const v = i < 0 && !required ? undefined : options[Math.min(options.length - 1, Math.max(0, i))];
+    if (v === value) return;
+    onChange(v);
+    navigator.vibrate?.(6); // tiny click on phones that support it
+  }
+
+  function handleType(raw: string) {
+    setTyping(raw);
+    if (raw === '') return required ? undefined : onChange(undefined);
+    const n = Number(raw);
+    if (Number.isFinite(n) && n !== value) onChange(n);
+  }
+
+  function endDrag() {
+    drag.current = null;
+    rollBase.current = roll;
+    setDragging(false);
   }
 
   return (
-    <div className="relative w-full">
-    <div className="relative rounded-xl bg-cream border border-peachLight overflow-hidden" style={{ height: ITEM_H * ROWS }}>
+    <div className="flex items-center gap-1 w-full">
+      {/* soft display */}
       <div
-        className="absolute inset-x-0 pointer-events-none border-y border-peach bg-peachLight/40"
-        style={{ top: ITEM_H, height: ITEM_H }}
-      />
-      <div
-        ref={ref}
-        onScroll={handleScroll}
-        className="relative h-full overflow-y-scroll snap-y snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        style={{ paddingTop: ITEM_H, paddingBottom: ITEM_H }}
+        className="flex-1 min-w-0 flex items-center gap-1 rounded-lg px-1.5"
+        style={{ background: '#FFF8F2', border: '1px solid #FFE3CC' }}
       >
-        {rows.map((r, i) => (
-          <button
-            key={r ?? 'none'}
-            type="button"
-            onClick={() => ref.current?.scrollTo({ top: i * ITEM_H, behavior: 'smooth' })}
-            className={`snap-center w-full flex items-center justify-center text-sm ${r === value ? 'font-extrabold text-app-text' : 'text-textMuted'}`}
-            style={{ height: ITEM_H }}
-          >
-            {r === undefined ? '–' : `${r}${unit ? ` ${unit}` : ''}`}
-          </button>
-        ))}
+        <input
+          type="number"
+          inputMode="numeric"
+          value={text}
+          placeholder="–"
+          onChange={e => handleType(e.target.value)}
+          onBlur={() => setTyping(null)}
+          className="w-full min-w-0 bg-transparent py-1 text-center text-base font-bold tabular-nums outline-none placeholder:text-textMuted/40"
+          style={{ color: '#3D2B1F' }}
+        />
+        {unit && <span className="text-xs shrink-0" style={{ color: '#9B7B6E' }}>{unit}</span>}
       </div>
-    </div>
-    {value !== undefined && !required && (
-      <button
-        type="button"
-        aria-label="Clear"
-        onClick={() => { ref.current?.scrollTo({ top: 0, behavior: 'smooth' }); onChange(undefined); }}
-        className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-full bg-warm text-textMuted hover:text-peachDark transition-colors"
+
+      {/* LED, lights up while the roller moves */}
+      <span
+        className="shrink-0 w-1.5 h-1.5 rounded-full transition-all"
+        style={{
+          background: dragging ? '#E8875A' : '#FFE3CC',
+          boxShadow: dragging ? '0 0 6px 2px rgba(255,171,118,.9)' : 'none',
+        }}
+      />
+
+      {/* roller slot */}
+      <div
+        className="shrink-0 rounded-lg p-0.5"
+        style={{ background: '#F5E6D3', border: '1px solid #FFE3CC', boxShadow: 'inset 0 2px 4px rgba(155,123,110,.2), 0 1px 0 #fff' }}
       >
-        <X size={12} strokeWidth={2.5} />
-      </button>
-    )}
+        <button
+          type="button"
+          aria-label="Drag up or down to change"
+          onPointerDown={e => {
+            e.currentTarget.setPointerCapture(e.pointerId);
+            drag.current = { y: e.clientY, i: indexOfValue() };
+            setDragging(true);
+          }}
+          onPointerMove={e => {
+            if (!drag.current) return;
+            setTyping(null);
+            setRoll(rollBase.current + e.clientY - drag.current.y);
+            moveTo(drag.current.i + Math.round((drag.current.y - e.clientY) / STEP_PX));
+          }}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+          onKeyDown={e => {
+            if (e.key === 'ArrowUp') moveTo(indexOfValue() + 1);
+            if (e.key === 'ArrowDown') moveTo(indexOfValue() - 1);
+          }}
+          className="block w-7 h-7 rounded-md cursor-grab active:cursor-grabbing outline-none focus-visible:ring-2 focus-visible:ring-peachDark"
+          style={{
+            touchAction: 'none',
+            backgroundColor: '#FFCBA8',
+            // top layer: round metal shading, bottom layer: engraved ridges that slide with the drag
+            backgroundImage: [
+              'linear-gradient(to bottom, rgba(150,70,30,.28) 0%, rgba(255,255,255,.5) 28%, rgba(255,255,255,.1) 50%, rgba(150,70,30,.1) 78%, rgba(150,70,30,.3) 100%)',
+              `repeating-linear-gradient(to bottom, rgba(150,70,30,.18) 0 2px, rgba(255,255,255,.4) 2px 3px, transparent 3px ${RIDGE_PX}px)`,
+            ].join(', '),
+            backgroundPosition: `0 0, 0 ${roll}px`,
+            boxShadow: 'inset 2px 0 2px rgba(150,70,30,.15), inset -2px 0 2px rgba(150,70,30,.15)',
+          }}
+        />
+      </div>
     </div>
   );
 }

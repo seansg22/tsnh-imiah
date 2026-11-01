@@ -13,6 +13,9 @@ export function milkSeed(m?: MilkFields): MilkState {
   return { ...m, kind: !m ? 'mom' : mom && formula ? 'mix' : mom ? 'mom' : formula ? 'formula' : undefined };
 }
 
+// an extra daytime milk record starts on mom's milk with 1 feed (formula switches to 1 feed too)
+export const newMilkRecord = (): MilkState => ({ kind: 'mom', momTimes: 1, formulaTimes: 1 });
+
 // only the fields of the chosen type are saved
 export function milkOut(s: MilkState): MilkFields {
   const mom = s.kind === 'mom' || s.kind === 'mix';

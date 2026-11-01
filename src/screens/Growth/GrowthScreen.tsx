@@ -6,6 +6,7 @@ import { useLang } from '../../i18n/langContext';
 import { formatDate } from '../../i18n/date';
 import { useApp } from '../../context/appStateContext';
 import { GrowthChart } from '../../components/growth/GrowthChart';
+import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { GrowthEntryForm } from '../../components/growth/GrowthEntryForm';
 import { type GrowthMetric, metricConfig, zScoreOf, percentileOfZ, MAX_WEEK } from '../../data/whoGrowthData';
 import type { GrowthEntry } from '../../types';
@@ -20,6 +21,7 @@ export function GrowthScreen() {
   const [showAdvice, setShowAdvice] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState<GrowthEntry | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const birthDate = state.babyProfile?.birthDate ?? '';
   const gender = state.babyProfile?.gender ?? 'girl';
@@ -163,13 +165,13 @@ export function GrowthScreen() {
                     <Pencil size={15} strokeWidth={2} />
                   </button>
                   <button
-                    onClick={() => handleDelete(entry.id)}
+                    onClick={() => setDeleteId(entry.id)}
                     className="p-1.5 text-textMuted hover:text-red-400 transition-colors flex-shrink-0"
                   >
                     <Trash2 size={15} strokeWidth={2} />
                   </button>
                 </div>
-                <div className="grid grid-cols-3 gap-2 mt-2 pr-3">
+                <div className="flex gap-6 mt-2 pr-3">
                   {metrics.map(m => {
                     const val = entry[m];
                     const st = val === undefined ? null : statOf(entry, m);
@@ -201,6 +203,12 @@ export function GrowthScreen() {
       )}
 
       <div className="pb-6" />
+      {deleteId && (
+        <ConfirmDialog
+          onConfirm={() => { handleDelete(deleteId); setDeleteId(null); }}
+          onCancel={() => setDeleteId(null)}
+        />
+      )}
       {showAdvice && <AdviceModal kind="growth" onClose={() => setShowAdvice(false)} />}
     </div>
   );

@@ -17,7 +17,7 @@ const FALL_ASLEEP = Array.from({ length: 24 }, (_, i) => (i + 1) * 5); // 5..120
 const WAKE_UPS = Array.from({ length: 10 }, (_, i) => i + 1);
 const FEED_MIN = Array.from({ length: 18 }, (_, i) => (i + 1) * 5); // 5..90 min
 
-const labelCls = 'text-xs font-semibold text-textMuted block mb-1.5 uppercase tracking-wide';
+const labelCls = 'text-sm font-semibold text-textMuted block mb-1.5';
 const sectionCls = 'rounded-xl border border-peachLight bg-cream/50 p-3 space-y-3';
 
 const DEFAULT_TIMES: Record<SleepKind, [string, string]> = { nap: ['13:00', '14:00'], night: ['20:00', '06:00'] };
@@ -105,14 +105,14 @@ export function SleepForm({ kind, onSave, onCancel, initialEntry, prefill }: Pro
       <div>
         <label className={labelCls}>{t('fd.date')}</label>
         <DateInput compact value={date} max={today} onChange={setDate} />
-        {nightTaken && <p className="mt-1.5 text-xs font-semibold text-red-500">{t('sl.nightTaken')}</p>}
+        {nightTaken && <p className="mt-1.5 text-sm font-semibold text-red-500">{t('sl.nightTaken')}</p>}
       </div>
 
       <section className={sectionCls}>
         <TimeWheels label={t('sl.start')} hour={startH} minute={startM} onHour={setStartH} onMinute={setStartM} />
         <TimeWheels label={t('sl.end')} hour={endH} minute={endM} onHour={setEndH} onMinute={setEndM} />
         {!sameTime && (
-          <div className="flex items-baseline gap-2 border-t border-peachLight pt-2 text-sm">
+          <div className="flex items-baseline gap-2 text-sm">
             <span className="font-bold text-app-text">{t('sl.slept')}</span>
             <span className="font-extrabold text-peachDark">{formatDuration(minutes)}</span>
           </div>

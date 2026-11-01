@@ -4,14 +4,16 @@ import { useLang } from '../../i18n/langContext';
 import type { UiKey } from '../../i18n/ui';
 import { useApp } from '../../context/appStateContext';
 import { solidsOf } from '../../lib/solids';
-import { milkSum } from '../../lib/milkTotal';
-import { emptySolid, hasFoods, milkOut, milkSeed, solidOut, solidSeed, withValue, type MilkKind, type MilkState, type SolidDraft } from '../../lib/foodForm';
+import { milkSum, milkSumAll } from '../../lib/milkTotal';
+import { dayMilksOf, splitDayMilks } from '../../lib/dayMilks';
+import { emptySolid, hasFoods, milkOut, milkSeed, newMilkRecord, solidOut, solidSeed, withValue, type MilkKind, type MilkState, type SolidDraft } from '../../lib/foodForm';
 import type { FoodEntry } from '../../types';
 import { DateInput } from '../shared/DateInput';
 import { WheelPicker } from '../shared/WheelPicker';
 import { PoopIcon } from '../shared/PoopIcon';
 import { Chip } from '../shared/Chip';
 import { CheckBox } from '../shared/CheckBox';
+import { AutoTextarea } from '../shared/AutoTextarea';
 import { FullPageForm } from '../shared/FullPageForm';
 import { ALLERGIES, FOODS, PORTIONS, TOP_FOODS, MAIN_FOODS, SNACK_FOODS, POOP_COLORS, POOP_TEXTURES, type PoopColor } from './foodOptions';
 
@@ -19,10 +21,10 @@ const TIMES = Array.from({ length: 13 }, (_, i) => i + 1);
 const mlOf = (p: string) => (/^\d+ ml$/.test(p) ? parseInt(p, 10) : undefined);
 const ML_STEPS = Array.from({ length: 30 }, (_, i) => (i + 1) * 10); // 10..300 ml
 
-const inputCls = 'w-full border border-peachLight rounded-xl px-3 py-2 text-sm text-app-text bg-cream focus:outline-none focus:border-peachDark';
+const inputCls = 'w-full border border-peachLight rounded-xl px-3 py-2 text-base text-app-text bg-cream focus:outline-none focus:border-peachDark';
 const sectionCls = 'rounded-xl border border-peachLight bg-cream/50 p-3 space-y-3';
 const titleCls = 'flex items-center gap-1.5 text-sm font-extrabold text-app-text';
-const labelCls = 'text-xs font-semibold text-textMuted block mb-1.5 uppercase tracking-wide';
+const labelCls = 'text-sm font-semibold text-textMuted block mb-1.5';
 
 interface PairProps {
   children?: React.ReactNode;
@@ -36,7 +38,7 @@ interface PairProps {
 function WheelPair({ children, title, timesLabel, mlLabel, times, onTimes, timesOptions, ml, onMl, mlOptions }: PairProps) {
   return (
     <div>
-      {title && <p className="text-xs font-extrabold text-app-text mb-1.5">{title}</p>}
+      {title && <p className="text-sm font-extrabold text-app-text mb-1.5">{title}</p>}
       {children}
       <div className="grid grid-cols-2 gap-2">
         <div>
@@ -52,7 +54,7 @@ function WheelPair({ children, title, timesLabel, mlLabel, times, onTimes, times
   );
 }
 
-function MilkSection({ title, icon, value, onChange }: { title: string; icon: React.ReactNode; value: MilkState; onChange: (v: MilkState) => void }) {
+function MilkSection({ title, icon, value, onChange, onRemove }: { title: string; icon: React.ReactNode; value: MilkState; onChange: (v: MilkState) => void; onRemove?: () => void }) {
   const { t } = useLang();
   const set = (patch: MilkState) => onChange({ ...value, ...patch });
   const { kind } = value;
@@ -61,7 +63,14 @@ function MilkSection({ title, icon, value, onChange }: { title: string; icon: Re
   const total = milkSum(milkOut(value)); // only what the chosen kind will save
   return (
     <section className={sectionCls}>
-      <h3 className={titleCls}>{icon}{title}</h3>
+      <div className="flex items-center justify-between">
+        <h3 className={titleCls}>{icon}{title}</h3>
+        {onRemove && (
+          <button type="button" aria-label="Remove" onClick={onRemove} className="p-1 rounded-full bg-warm text-textMuted hover:text-peachDark transition-colors">
+            <X size={12} strokeWidth={2.5} />
+          </button>
+        )}
+      </div>
       <div className="flex gap-2">
         {([['mom', t('fd.momMilk')], ['formula', t('fd.formula')], ['mix', t('fd.mix')]] as [MilkKind, string][]).map(([k, label]) => (
           <Chip key={k} on={kind === k} onClick={() => set({ kind: kind === k ? undefined : k })}>{label}</Chip>
@@ -97,7 +106,7 @@ function MilkSection({ title, icon, value, onChange }: { title: string; icon: Re
         />
       )}
       {total.ml > 0 && (
-        <div className="flex items-baseline gap-2 border-t border-peachLight pt-2 text-sm">
+        <div className="flex items-baseline gap-2 text-sm">
           <span className="font-bold text-app-text">{t('fd.totalAll')}</span>
           <span className="font-extrabold text-peachDark">{total.ml}{total.complete ? '' : '+'} ml</span>
         </div>
@@ -195,7 +204,11 @@ export function FoodDiaryForm({ onSave, onCancel, initialEntry, prefill }: Props
   const { t } = useLang();
   const today = new Date().toISOString().split('T')[0];
   const [date, setDate] = useState(initialEntry?.date ?? today);
-  const [day, setDay] = useState(() => milkSeed(seed));
+  // daytime milk can have several records; the first one is saved on the entry itself, see dayMilksOf
+  const [days, setDays] = useState<MilkState[]>(() => {
+    const list = seed ? dayMilksOf(seed).map(milkSeed) : [];
+    return list.length ? list : [milkSeed(seed ? {} : undefined)];
+  });
   const [night, setNight] = useState(() => milkSeed(seed?.night));
   const [meals, setMeals] = useState<SolidDraft[]>(() => {
     const m = seed ? solidsOf(seed).map(solidSeed) : [];
@@ -208,13 +221,16 @@ export function FoodDiaryForm({ onSave, onCancel, initialEntry, prefill }: Props
   const hasPoop = pTimes !== undefined || pColors.length > 0 || pTextures.length > 0;
   const toggleIn = (set: (f: (p: string[]) => string[]) => void, v: string) => set(p => (p.includes(v) ? p.filter(x => x !== v) : [...p, v]));
   // never prefilled from the last day: a reaction belongs to that day only
-  const [allergy, setAllergy] = useState<string[]>(initialEntry?.allergy ?? []);
-  const [otherAllergy, setOtherAllergy] = useState('');
+  // ready-made reactions are tags, anything typed before is one free text box
+  const isTag = (a: string) => (ALLERGIES as readonly string[]).includes(a);
+  const [allergy, setAllergy] = useState<string[]>((initialEntry?.allergy ?? []).filter(isTag));
+  const [otherAllergy, setOtherAllergy] = useState((initialEntry?.allergy ?? []).filter(a => !isTag(a)).join(', '));
 
   const solids = meals.filter(hasFoods).map(solidOut);
-  const dayOut = milkOut(day);
+  const dayOuts = days.map(milkOut).filter(m => Object.keys(m).length > 0);
+  const dayTotal = milkSumAll(dayOuts);
   const nightOut = milkOut(night);
-  const hasMilk = Object.keys(dayOut).length > 0 || Object.keys(nightOut).length > 0;
+  const hasMilk = dayOuts.length > 0 || Object.keys(nightOut).length > 0;
   // one note per day (the id is the date), so a second one would silently replace the first
   const { state } = useApp();
   const dateTaken = state.foodEntries.some(e => e.date === date && e.id !== initialEntry?.id);
@@ -226,7 +242,7 @@ export function FoodDiaryForm({ onSave, onCancel, initialEntry, prefill }: Props
     onSave({
       id: date,
       date,
-      ...dayOut,
+      ...splitDayMilks(dayOuts),
       ...(Object.keys(nightOut).length ? { night: nightOut } : {}),
       ...(hasPoop ? { poop: { ...(pTimes !== undefined ? { times: pTimes } : {}), ...(pColors.length ? { colors: pColors } : {}), ...(pTextures.length ? { textures: pTextures } : {}) } } : {}),
       ...(allAllergy.length ? { allergy: allAllergy } : {}),
@@ -251,10 +267,35 @@ export function FoodDiaryForm({ onSave, onCancel, initialEntry, prefill }: Props
         <div>
           <label className={labelCls}>{t('fd.date')}</label>
           <DateInput compact value={date} max={today} onChange={setDate} />
-          {dateTaken && <p className="mt-1.5 text-xs font-semibold text-red-500">{t('fd.dateTaken')}</p>}
+          {dateTaken && <p className="mt-1.5 text-sm font-semibold text-red-500">{t('fd.dateTaken')}</p>}
         </div>
 
-        <MilkSection title={t('fd.milkDay')} icon={<Sun size={16} strokeWidth={2.5} className="text-peachDark" />} value={day} onChange={setDay} />
+        {days.map((d, i) => (
+          <MilkSection
+            key={i}
+            title={days.length > 1 ? t('fd.milkDayN', { n: i + 1 }) : t('fd.milkDay')}
+            icon={<Sun size={16} strokeWidth={2.5} className="text-peachDark" />}
+            value={d}
+            onChange={v => setDays(p => p.map((x, j) => (j === i ? v : x)))}
+            onRemove={days.length > 1 ? () => setDays(p => p.filter((_, j) => j !== i)) : undefined}
+          />
+        ))}
+        {Object.keys(milkOut(days[days.length - 1])).length > 0 && (
+          <button
+            type="button"
+            onClick={() => setDays(p => [...p, newMilkRecord()])}
+            className="flex items-center justify-center gap-1 w-full py-2 rounded-xl border border-dashed border-peach text-sm font-bold text-peachDark"
+          >
+            <Plus size={14} strokeWidth={2.5} />
+            {t('fd.addMilk')}
+          </button>
+        )}
+        {days.length > 1 && dayTotal.ml > 0 && (
+          <div className="flex items-baseline gap-2 text-sm">
+            <span className="font-bold text-app-text">{t('fd.dayTotal')}</span>
+            <span className="font-extrabold text-peachDark">{dayTotal.ml}{dayTotal.complete ? '' : '+'} ml</span>
+          </div>
+        )}
         <MilkSection title={t('fd.milkNight')} icon={<Moon size={16} strokeWidth={2.5} className="text-peachDark" />} value={night} onChange={setNight} />
 
         {meals.map((m, i) => (
@@ -271,7 +312,7 @@ export function FoodDiaryForm({ onSave, onCancel, initialEntry, prefill }: Props
           <button
             type="button"
             onClick={() => setMeals(p => [...p, emptySolid()])}
-            className="flex items-center justify-center gap-1 w-full py-2 rounded-xl border border-dashed border-peach text-xs font-bold text-peachDark"
+            className="flex items-center justify-center gap-1 w-full py-2 rounded-xl border border-dashed border-peach text-sm font-bold text-peachDark"
           >
             <Plus size={14} strokeWidth={2.5} />
             {t('fd.addSolid')}
@@ -313,11 +354,8 @@ export function FoodDiaryForm({ onSave, onCancel, initialEntry, prefill }: Props
                 {t(`fd.allergy.${a}` as UiKey)}
               </Chip>
             ))}
-            {allergy.filter(a => !(ALLERGIES as readonly string[]).includes(a)).map(a => (
-              <Chip key={a} on onClick={() => setAllergy(p => p.filter(x => x !== a))}>{a}</Chip>
-            ))}
           </div>
-          <input type="text" placeholder={t('fd.phAllergy')} value={otherAllergy} onChange={e => setOtherAllergy(e.target.value)} className={inputCls} />
+          <AutoTextarea placeholder={t('fd.phAllergy')} value={otherAllergy} onChange={setOtherAllergy} className={inputCls} />
         </section>
 
     </FullPageForm>

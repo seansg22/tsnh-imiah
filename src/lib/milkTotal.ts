@@ -1,4 +1,5 @@
 import type { FoodEntry, MilkFields } from '../types';
+import { dayMilksOf } from './dayMilks';
 
 export interface MilkTotal {
   ml: number; // sum of times x ml over mom's milk and formula
@@ -21,11 +22,13 @@ function sum(parts: MilkFields[]): MilkTotal {
   return total;
 }
 
-// one milk section (used while typing)
+// milk section(s) while typing
 export const milkSum = (m: MilkFields): MilkTotal => sum([m]);
+export const milkSumAll = (ms: MilkFields[]): MilkTotal => sum(ms);
 
-// daytime milk is the entry itself, night milk is entry.night
+// daytime milk can be several records (dayMilksOf), night milk is entry.night
 export function milkTotals(e: FoodEntry): { day: MilkTotal; night: MilkTotal; all: MilkTotal } {
+  const day = dayMilksOf(e);
   const night = e.night ?? {};
-  return { day: sum([e]), night: sum([night]), all: sum([e, night]) };
+  return { day: sum(day), night: sum([night]), all: sum([...day, night]) };
 }

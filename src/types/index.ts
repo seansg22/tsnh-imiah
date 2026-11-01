@@ -101,6 +101,7 @@ export interface PoopLog {
 }
 
 export interface FoodEntry extends MilkFields { // the milk fields are the daytime milk
+  moreMilks?: MilkFields[]; // daytime milk records after the first (the first is the fields above), see dayMilksOf()
   night?: MilkFields; // night-time milk
   poop?: PoopLog;
   id: string; // same as date: one note per day

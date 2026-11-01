@@ -87,10 +87,14 @@ export function DateInput({ value, onChange, min, max, compact }: DateInputProps
     onChange(next);
   }
 
-  const sizeClass = compact ? 'py-2 text-sm' : 'py-3 text-sm';
+  const sizeClass = compact ? 'py-2 text-sm !border !border-peachLight focus:!border-peachDark' : 'py-3 text-sm';
+  // compact: 3 equal columns, so it lines up with a grid-cols-3 row below it
+  const wrapClass = compact ? 'grid grid-cols-3 gap-2 w-full' : 'flex gap-2 w-full';
+  const dayMax = compact ? '' : 'max-w-[72px]';
+  const yearMax = compact ? '' : 'max-w-[90px]';
 
   return (
-    <div className="flex gap-2 w-full">
+    <div className={wrapClass}>
       {/* Month */}
       <select
         value={selectedMonth || ''}
@@ -108,7 +112,7 @@ export function DateInput({ value, onChange, min, max, compact }: DateInputProps
       <select
         value={selectedDay || ''}
         onChange={e => emit(selectedYear, selectedMonth, Number(e.target.value))}
-        className={`${selectClass} ${sizeClass} max-w-[72px] ${valueClass(selectedDay)}`}
+        className={`${selectClass} ${sizeClass} ${dayMax} ${valueClass(selectedDay)}`}
         style={{ WebkitAppearance: 'none' }}
       >
         <option value="" disabled>{t('date.day')}</option>
@@ -121,7 +125,7 @@ export function DateInput({ value, onChange, min, max, compact }: DateInputProps
       <select
         value={selectedYear || ''}
         onChange={e => emit(Number(e.target.value), selectedMonth, selectedDay)}
-        className={`${selectClass} ${sizeClass} max-w-[90px] ${valueClass(selectedYear)}`}
+        className={`${selectClass} ${sizeClass} ${yearMax} ${valueClass(selectedYear)}`}
         style={{ WebkitAppearance: 'none' }}
       >
         <option value="" disabled>{t('date.year')}</option>
