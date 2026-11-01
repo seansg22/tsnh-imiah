@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Pencil, Sparkles, Sun, Moon, Utensils, TriangleAlert, Baby } from 'lucide-react';
+import { Plus, Trash2, Pencil, Sparkles, Sun, Moon, Milk, Utensils, TriangleAlert, Baby } from 'lucide-react';
 import { parseISO, differenceInWeeks } from 'date-fns';
 import { AdviceModal } from '../../components/ai/AdviceModal';
 import { useLang } from '../../i18n/langContext';
@@ -9,6 +9,7 @@ import { useApp } from '../../context/appStateContext';
 import { FoodDiaryForm } from '../../components/food/FoodDiaryForm';
 import { ALLERGIES, FOODS, PORTIONS } from '../../components/food/foodOptions';
 import { solidsOf } from '../../lib/solids';
+import { milkTotals, type MilkTotal } from '../../lib/milkTotal';
 import type { LucideIcon } from 'lucide-react';
 import type { FoodEntry, MilkFields } from '../../types';
 
@@ -92,9 +93,14 @@ export function FoodDiaryScreen() {
                 entry.poop.textures?.length && entry.poop.textures.map(x => t(`fd.poopTexture.${x}` as UiKey)).join(', '),
               ].filter(Boolean) as string[]
             : [];
+          const totals = milkTotals(entry);
+          // "330 ml" with a plus when some feeds had no ml, so it is a minimum
+          const plus = (m: MilkTotal) => (m.complete ? '' : '+');
+          const totalRow = (name: string, m: MilkTotal): Row[] => (m.ml > 0 ? [{ name, parts: [`${m.ml}${plus(m)} ml`] }] : []);
           const blocks: { title: string; Icon: LucideIcon; rows: Row[] }[] = [
             { title: t('fd.milkDay'), Icon: Sun, rows: milkRowsOf(entry) },
             { title: t('fd.milkNight'), Icon: Moon, rows: entry.night ? milkRowsOf(entry.night) : [] },
+            { title: t('fd.milkTotal'), Icon: Milk, rows: [...totalRow(t('fd.totalDay'), totals.day), ...totalRow(t('fd.totalNight'), totals.night), ...totalRow(t('fd.totalAll'), totals.all)] },
             { title: t('fd.solid'), Icon: Utensils, rows: solidsOf(entry).map(m => ({ name: m.foods.map(foodLabel).join(', '), parts: [m.portion && portionLabel(m.portion)], snack: m.snack })) },
             { title: t('fd.poop'), Icon: Baby, rows: poopItems.length ? [{ name: poopItems[0], parts: poopItems.slice(1) }] : [{ name: t('fd.noPoop'), parts: [] }] },
           ].filter(b => b.rows.length > 0);

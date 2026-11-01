@@ -43,6 +43,7 @@ export function GrowthScreen() {
   function handleEdit(entry: GrowthEntry) {
     setShowForm(false);
     setEditingEntry(entry);
+    window.scrollTo({ top: 0, behavior: 'instant' }); // the form is at the top
   }
 
   function handleDelete(id: string) {

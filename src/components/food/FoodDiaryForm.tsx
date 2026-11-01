@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Check, Plus, Baby, Sun, Moon, Utensils, TriangleAlert } from 'lucide-react';
 import { useLang } from '../../i18n/langContext';
 import type { UiKey } from '../../i18n/ui';
+import { useApp } from '../../context/appStateContext';
 import { solidsOf } from '../../lib/solids';
+import { milkSum } from '../../lib/milkTotal';
 import { emptySolid, hasFoods, milkOut, milkSeed, solidOut, solidSeed, withValue, type MilkKind, type MilkState, type SolidDraft } from '../../lib/foodForm';
 import type { FoodEntry } from '../../types';
 import { DateInput } from '../shared/DateInput';
@@ -54,6 +57,7 @@ function MilkSection({ title, icon, value, onChange }: { title: string; icon: Re
   const { kind } = value;
   const timesLabel = t('fd.timesLabel');
   const mlLabel = t('fd.mlLabel');
+  const total = milkSum(milkOut(value)); // only what the chosen kind will save
   return (
     <section className={sectionCls}>
       <h3 className={titleCls}>{icon}{title}</h3>
@@ -91,6 +95,12 @@ function MilkSection({ title, icon, value, onChange }: { title: string; icon: Re
           ml={value.formulaMl} onMl={v => set({ formulaMl: v })} mlOptions={withValue(ML_STEPS, value.formulaMl)}
         />
       )}
+      {total.ml > 0 && (
+        <div className="flex items-baseline gap-2 border-t border-peachLight pt-2 text-sm">
+          <span className="font-bold text-app-text">{t('fd.totalAll')}</span>
+          <span className="font-extrabold text-peachDark">{total.ml}{total.complete ? '' : '+'} ml</span>
+        </div>
+      )}
     </section>
   );
 }
@@ -107,10 +117,10 @@ function SolidBlock({ title, value, onChange, onRemove }: BlockProps) {
     onChange({ ...value, other: '', foods: f && !foods.some(x => x.toLowerCase() === f.toLowerCase()) ? [...foods, f] : foods });
   }
   // free-text foods stay visible as selected chips, tap to remove
-  // the usual quick picks, plus extras for a main meal or a snack
+  // same quick picks for a main meal and a snack
   const foodLabel = (f: string) => ((FOODS as readonly string[]).includes(f) ? t(`fd.food.${f}` as UiKey) : f);
   const byLabel = (a: string, b: string) => foodLabel(a).localeCompare(foodLabel(b), lang);
-  const presets = [...new Set([...TOP_FOODS, ...(value.snack ? SNACK_FOODS : MAIN_FOODS)])].sort(byLabel);
+  const presets = [...new Set([...TOP_FOODS, ...MAIN_FOODS, ...SNACK_FOODS])].sort(byLabel);
   const extraFoods = foods.filter(f => !(presets as string[]).includes(f)).sort(byLabel);
   return (
     <div className="space-y-2">
@@ -222,7 +232,10 @@ export function FoodDiaryForm({ onSave, onCancel, initialEntry, prefill }: Props
   const dayOut = milkOut(day);
   const nightOut = milkOut(night);
   const hasMilk = Object.keys(dayOut).length > 0 || Object.keys(nightOut).length > 0;
-  const canSave = date && (hasMilk || solids.length > 0 || hasPoop || allergy.length > 0 || otherAllergy.trim() !== '');
+  // one note per day (the id is the date), so a second one would silently replace the first
+  const { state } = useApp();
+  const dateTaken = state.foodEntries.some(e => e.date === date && e.id !== initialEntry?.id);
+  const canSave = date && !dateTaken && (hasMilk || solids.length > 0 || hasPoop || allergy.length > 0 || otherAllergy.trim() !== '');
 
   function handleSave() {
     if (!canSave) return;
@@ -238,19 +251,39 @@ export function FoodDiaryForm({ onSave, onCancel, initialEntry, prefill }: Props
     });
   }
 
-  return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-peachLight">
-      <div className="flex items-center justify-between mb-3">
+  // add and edit both open as a full page with the save button pinned at the bottom
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden'; // the page behind must not scroll
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  const footer = (
+    <>
+      <button
+        onClick={handleSave}
+        disabled={!canSave}
+        className="w-full py-2.5 rounded-xl text-sm font-bold bg-peach text-white disabled:opacity-40 transition-opacity"
+      >
+        {initialEntry ? t('fd.update') : t('fd.save')}
+      </button>
+    </>
+  );
+
+  const form = (
+    <div className="fixed inset-y-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-[60] bg-white flex flex-col">
+      <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-peachLight">
         <p className="font-bold text-app-text text-sm">{initialEntry ? t('fd.edit') : t('fd.add')}</p>
         <button onClick={onCancel} className="p-1 text-textMuted">
           <X size={16} strokeWidth={2} />
         </button>
       </div>
 
-      <div className="space-y-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         <div>
           <label className={labelCls}>{t('fd.date')}</label>
           <DateInput compact value={date} max={today} onChange={setDate} />
+          {dateTaken && <p className="mt-1.5 text-xs font-semibold text-red-500">{t('fd.dateTaken')}</p>}
         </div>
 
         <MilkSection title={t('fd.milkDay')} icon={<Sun size={16} strokeWidth={2.5} className="text-peachDark" />} value={day} onChange={setDay} />
@@ -319,14 +352,10 @@ export function FoodDiaryForm({ onSave, onCancel, initialEntry, prefill }: Props
           <input type="text" placeholder={t('fd.phAllergy')} value={otherAllergy} onChange={e => setOtherAllergy(e.target.value)} className={inputCls} />
         </section>
 
-        <button
-          onClick={handleSave}
-          disabled={!canSave}
-          className="w-full py-2.5 rounded-xl text-sm font-bold bg-peach text-white disabled:opacity-40 transition-opacity"
-        >
-          {initialEntry ? t('fd.update') : t('fd.save')}
-        </button>
       </div>
+      <div className="px-4 py-3 bg-white border-t border-peachLight space-y-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">{footer}</div>
     </div>
   );
+  // portal: a transformed ancestor (page fade-in) would otherwise trap position: fixed
+  return createPortal(form, document.body);
 }
