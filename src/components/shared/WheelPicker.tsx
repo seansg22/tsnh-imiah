@@ -9,13 +9,14 @@ interface Props {
   value: number | undefined; // undefined = nothing picked (first "–" row)
   onChange: (v: number | undefined) => void;
   unit?: string;
+  required?: boolean; // no "–" row and no clear button: a value is always picked
 }
 
 // iPhone-style wheel: scroll-snap list, the row under the highlight bar is the value.
-export function WheelPicker({ options, value, onChange, unit }: Props) {
+export function WheelPicker({ options, value, onChange, unit, required }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const rows: (number | undefined)[] = [undefined, ...options];
+  const rows: (number | undefined)[] = required ? options : [undefined, ...options];
 
   // jump to the initial value once; later changes come from the wheel itself
   useEffect(() => {
@@ -59,7 +60,7 @@ export function WheelPicker({ options, value, onChange, unit }: Props) {
         ))}
       </div>
     </div>
-    {value !== undefined && (
+    {value !== undefined && !required && (
       <button
         type="button"
         aria-label="Clear"

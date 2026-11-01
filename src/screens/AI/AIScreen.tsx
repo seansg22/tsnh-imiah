@@ -11,6 +11,7 @@ import { callAI } from '../../lib/ai';
 import { summarizeConversation } from '../../lib/knowledgeSummary';
 import { useLang } from '../../i18n/langContext';
 import { nowTimestamp } from '../../lib/timestamp';
+import { foodData, sleepData } from '../../lib/advicePrompts';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -135,6 +136,12 @@ export function AIScreen() {
 
     const notesLine = baby.notes?.trim() ? `\n- Parent's notes: ${baby.notes.trim()}` : '';
 
+    // recent diaries (up to 14 days each), only when the parent has written any
+    const diaryLines = [
+      state.foodEntries.length > 0 && `\n\nRecent food diary:\n${foodData(state)}`,
+      state.sleepEntries.length > 0 && `\n\nRecent sleep diary:\n${sleepData(state)}`,
+    ].filter(Boolean).join('');
+
     const historyLine = state.knowledgeBase
       .slice(-10)
       .map(e => e.content)
@@ -147,7 +154,7 @@ Baby:
 - Age: ${age.weeks} weeks
 - Gender: ${baby.gender}
 ${feedingLines}
-- Solids: ${solidsLine}${measurementsLine ? `\n- Latest measurements: ${measurementsLine}` : ''}${milestonesLine ? `\n- Achieved milestones: ${milestonesLine}` : ''}${notesLine}${historyLine ? `\n\nKnown history about ${baby.name} from past conversations:\n${historyLine}` : ''}
+- Solids: ${solidsLine}${measurementsLine ? `\n- Latest measurements: ${measurementsLine}` : ''}${milestonesLine ? `\n- Achieved milestones: ${milestonesLine}` : ''}${notesLine}${diaryLines}${historyLine ? `\n\nKnown history about ${baby.name} from past conversations:\n${historyLine}` : ''}
 
 Rules:
 ${lang === 'vi'

@@ -8,6 +8,7 @@ import { useBabyAge } from '../../hooks/useBabyAge';
 import { MilestoneItem } from '../../components/milestones/MilestoneItem';
 import type { Milestone } from '../../types';
 import { chipCls } from '../../components/shared/chipStyle';
+import { canSkip, isOverdue } from '../../lib/milestones';
 
 const groups = [
   { label: 'ms.g1' as const,    range: [0,   4]   as [number, number] },
@@ -42,14 +43,16 @@ export function MilestonesScreen() {
     }
   }
 
-  const categories: CategoryFilter[] = ['all', 'motor', 'cognitive', 'social', 'sensory', 'vaccination'];
+  const categories: CategoryFilter[] = ['all', 'vaccinationSG', 'vaccinationVN', 'motor', 'cognitive', 'social', 'sensory'];
   const query = search.trim().toLowerCase();
   const filtered = milestones
     .filter(m => filter === 'all' || m.category === filter)
     .filter(m => !query || m.label.toLowerCase().includes(query) || m.description?.toLowerCase().includes(query))
     .sort((a, b) => a.weekRange[0] - b.weekRange[0] || a.weekRange[1] - b.weekRange[1]);
   const achieved = new Set(state.achievedMilestones);
-  const achievedCount = milestones.filter(m => achieved.has(m.id)).length;
+  const skipped = new Set(state.skippedMilestones);
+  // a skipped vaccine counts as done in the top count and the bar
+  const achievedCount = milestones.filter(m => achieved.has(m.id) || skipped.has(m.id)).length;
 
   return (
     <div className="fade-in">
@@ -125,7 +128,9 @@ export function MilestonesScreen() {
                     key={m.id}
                     milestone={m}
                     achieved={achieved.has(m.id)}
-                    overdue={m.weekRange[1] <= currentWeek && !achieved.has(m.id)}
+                    overdue={isOverdue(m, currentWeek, achieved, skipped)}
+                    skipped={skipped.has(m.id)}
+                    onSkip={canSkip(m) ? () => dispatch({ type: 'TOGGLE_SKIP_MILESTONE', payload: m.id }) : undefined}
                     onToggle={() => dispatch({ type: 'TOGGLE_MILESTONE', payload: m.id })}
                   />
                 ))}

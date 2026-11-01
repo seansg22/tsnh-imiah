@@ -1,9 +1,10 @@
-import { Home, Star, Sparkles, TrendingUp, Settings, Baby, CalendarDays, Compass, UserRound, Utensils, Milk, Heart } from 'lucide-react';
+import { Home, Star, Sparkles, TrendingUp, Settings, Baby, CalendarDays, Compass, UserRound, Utensils, Milk, Moon, Heart } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../context/appStateContext';
 import { useLang } from '../../i18n/langContext';
 import type { UiKey } from '../../i18n/ui';
 import { milestones } from '../../data/weeklyDevelopment';
+import { isOverdue } from '../../lib/milestones';
 import { useBabyAge } from '../../hooks/useBabyAge';
 import type { Page } from '../../types';
 
@@ -18,6 +19,7 @@ const progressOptions: { page: Page; icon: React.ElementType; label: UiKey }[] =
   { page: 'milestones',  icon: Star,       label: 'nav.milestones'   },
   { page: 'growth',      icon: TrendingUp, label: 'nav.growth'       },
   { page: 'fooddiary',  icon: Milk,       label: 'nav.foodDiary'    },
+  { page: 'sleep',      icon: Moon,       label: 'nav.sleep'        },
   { page: 'wonderweek',  icon: CalendarDays, label: 'nav.wonderWeek' },
 ];
 
@@ -29,12 +31,12 @@ export function BottomNav() {
   const menuRef = useRef<HTMLDivElement>(null);
   const homeMenuRef = useRef<HTMLDivElement>(null);
 
-  const isProgressActive = state.currentPage === 'milestones' || state.currentPage === 'growth' || state.currentPage === 'fooddiary' || state.currentPage === 'babyprofile' || state.currentPage === 'wonderweek';
+  const isProgressActive = state.currentPage === 'milestones' || state.currentPage === 'growth' || state.currentPage === 'fooddiary' || state.currentPage === 'sleep' || state.currentPage === 'babyprofile' || state.currentPage === 'wonderweek';
   const isHomeActive = state.currentPage === 'today' || state.currentPage === 'insights' || state.currentPage === 'food';
   const { currentWeek } = useBabyAge(state.babyProfile?.birthDate ?? null);
-  const unfinishedMilestones = milestones.filter(
-    m => m.weekRange[1] <= currentWeek && !state.achievedMilestones.includes(m.id)
-  ).length;
+  const achieved = new Set(state.achievedMilestones);
+  const skipped = new Set(state.skippedMilestones);
+  const unfinishedMilestones = milestones.filter(m => isOverdue(m, currentWeek, achieved, skipped)).length;
 
   useEffect(() => {
     if (!showProgress) return;

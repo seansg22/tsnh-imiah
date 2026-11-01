@@ -13,12 +13,14 @@ import { GrowthScreen } from './screens/Growth/GrowthScreen';
 import { AIScreen } from './screens/AI/AIScreen';
 import { FoodDiaryScreen } from './screens/FoodDiary/FoodDiaryScreen';
 import { FoodScreen } from './screens/Food/FoodScreen';
+import { SleepScreen } from './screens/Sleep/SleepScreen';
 import { MomScreen } from './screens/Mom/MomScreen';
 import { OverdueBanner } from './components/banners/OverdueBanner';
 import { FoodDiaryBanner } from './components/banners/FoodDiaryBanner';
 import { ProfileUpdateBanner } from './components/banners/ProfileUpdateBanner';
 import { WonderWeekCalendar } from './components/milestones/WonderWeekCalendar';
 import { milestones } from './data/weeklyDevelopment';
+import { isOverdue } from './lib/milestones';
 import { useBabyAge } from './hooks/useBabyAge';
 import { useCloudSync } from './hooks/useCloudSync';
 import { DEFAULT_EDD } from './constants/babyDefaults';
@@ -28,7 +30,8 @@ function AppContent() {
   useCloudSync();
   const { currentWeek } = useBabyAge(state.babyProfile?.birthDate ?? null);
   const achieved = new Set(state.achievedMilestones);
-  const overdueCount = milestones.filter(m => m.weekRange[1] <= currentWeek && !achieved.has(m.id)).length;
+  const skipped = new Set(state.skippedMilestones);
+  const overdueCount = milestones.filter(m => isOverdue(m, currentWeek, achieved, skipped)).length;
 
   useEffect(() => {
     if (!state.babyProfile && state.currentPage !== 'onboarding') {
@@ -56,6 +59,7 @@ function AppContent() {
     mom: <MomScreen />,
     growth: <GrowthScreen />,
     fooddiary: <FoodDiaryScreen />,
+    sleep: <SleepScreen />,
     settings: <SettingsScreen />,
     babyprofile: <BabyProfileScreen />,
     wonderweek: state.babyProfile ? (

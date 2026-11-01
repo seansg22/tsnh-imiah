@@ -62,7 +62,7 @@ export interface Milestone {
   id: string;
   weekRange: [number, number];
   label: string;
-  category: 'motor' | 'cognitive' | 'social' | 'sensory' | 'vaccination';
+  category: 'motor' | 'cognitive' | 'social' | 'sensory' | 'vaccinationVN' | 'vaccinationSG';
   description?: string;
 }
 
@@ -112,14 +112,32 @@ export interface FoodEntry extends MilkFields { // the milk fields are the dayti
   portion?: string; // older entries only
 }
 
-export type Page = 'onboarding' | 'today' | 'milestones' | 'insights' | 'growth' | 'settings' | 'ai' | 'wonderweek' | 'babyprofile' | 'food' | 'mom' | 'fooddiary';
+export type SleepKind = 'nap' | 'night';
+
+// one sleep: a daytime nap or the night sleep. A day can have many naps.
+export interface SleepEntry {
+  id: string;
+  date: string; // "YYYY-MM-DD", the day the sleep started
+  kind: SleepKind;
+  start: string; // "HH:mm"
+  end: string; // "HH:mm", may be after midnight for night sleep
+  fallAsleepMin?: number; // how long it took baby to fall asleep
+  wakeUps?: number; // night sleep only
+  wakeFeed?: boolean; // night sleep only: baby fed when waking up
+  wakeFeedMin?: number; // how long that feed took
+  fellAsleep?: string[]; // keys of SLEEP_WAYS
+}
+
+export type Page = 'onboarding' | 'today' | 'milestones' | 'insights' | 'growth' | 'settings' | 'ai' | 'wonderweek' | 'babyprofile' | 'food' | 'mom' | 'fooddiary' | 'sleep';
 
 export interface AppState {
   babyProfile: BabyProfile | null;
   achievedMilestones: string[];
+  skippedMilestones: string[]; // vaccinations the family chose to skip: never overdue
   selectedWeek: number;
   growthEntries: GrowthEntry[];
   foodEntries: FoodEntry[];
+  sleepEntries: SleepEntry[];
   knowledgeBase: KnowledgeEntry[];
   currentPage: Page;
 }
@@ -127,12 +145,15 @@ export interface AppState {
 export type AppAction =
   | { type: 'SET_BABY_PROFILE'; payload: BabyProfile }
   | { type: 'TOGGLE_MILESTONE'; payload: string }
+  | { type: 'TOGGLE_SKIP_MILESTONE'; payload: string }
   | { type: 'SET_SELECTED_WEEK'; payload: number }
   | { type: 'ADD_GROWTH_ENTRY'; payload: GrowthEntry }
   | { type: 'UPDATE_GROWTH_ENTRY'; payload: GrowthEntry }
   | { type: 'DELETE_GROWTH_ENTRY'; payload: string }
   | { type: 'UPSERT_FOOD_ENTRY'; payload: FoodEntry }
   | { type: 'DELETE_FOOD_ENTRY'; payload: string }
+  | { type: 'UPSERT_SLEEP_ENTRY'; payload: SleepEntry }
+  | { type: 'DELETE_SLEEP_ENTRY'; payload: string }
   | { type: 'ADD_KNOWLEDGE_ENTRY'; payload: KnowledgeEntry }
   | { type: 'UPDATE_KNOWLEDGE_ENTRY'; payload: KnowledgeEntry }
   | { type: 'DELETE_KNOWLEDGE_ENTRY'; payload: string }

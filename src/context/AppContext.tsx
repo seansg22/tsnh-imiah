@@ -7,9 +7,11 @@ import { APPLIED_EVENT } from '../lib/cloudSync';
 const initialState: AppState = {
   babyProfile: null,
   achievedMilestones: [],
+  skippedMilestones: [],
   selectedWeek: 0,
   growthEntries: [],
   foodEntries: [],
+  sleepEntries: [],
   knowledgeBase: [],
   currentPage: 'onboarding',
 };
@@ -19,11 +21,19 @@ function reducer(state: AppState, action: AppAction): AppState {
     case 'SET_BABY_PROFILE':
       return { ...state, babyProfile: action.payload };
     case 'TOGGLE_MILESTONE':
+      if (state.skippedMilestones.includes(action.payload)) return state; // a skipped one must be un-skipped first
       return {
         ...state,
         achievedMilestones: state.achievedMilestones.includes(action.payload)
           ? state.achievedMilestones.filter(id => id !== action.payload)
           : [...state.achievedMilestones, action.payload],
+      };
+    case 'TOGGLE_SKIP_MILESTONE':
+      return {
+        ...state,
+        skippedMilestones: state.skippedMilestones.includes(action.payload)
+          ? state.skippedMilestones.filter(id => id !== action.payload)
+          : [...state.skippedMilestones, action.payload],
       };
     case 'SET_SELECTED_WEEK':
       return { ...state, selectedWeek: action.payload };
@@ -48,6 +58,10 @@ function reducer(state: AppState, action: AppAction): AppState {
       };
     case 'DELETE_FOOD_ENTRY':
       return { ...state, foodEntries: state.foodEntries.filter(e => e.id !== action.payload) };
+    case 'UPSERT_SLEEP_ENTRY':
+      return { ...state, sleepEntries: [...state.sleepEntries.filter(e => e.id !== action.payload.id), action.payload] };
+    case 'DELETE_SLEEP_ENTRY':
+      return { ...state, sleepEntries: state.sleepEntries.filter(e => e.id !== action.payload) };
     case 'ADD_KNOWLEDGE_ENTRY':
       return { ...state, knowledgeBase: [...state.knowledgeBase, action.payload] };
     case 'UPDATE_KNOWLEDGE_ENTRY':
@@ -75,8 +89,10 @@ function loadState(): AppState {
   try {
     const profile = localStorage.getItem('baby-day:profile');
     const milestones = localStorage.getItem('baby-day:achieved-milestones');
+    const skipped = localStorage.getItem('baby-day:skipped-milestones');
     const growth = localStorage.getItem('baby-day:growth-entries');
     const food = localStorage.getItem('baby-day:food-entries');
+    const sleep = localStorage.getItem('baby-day:sleep-entries');
     const knowledgeBase = localStorage.getItem('baby-day:knowledge-base');
     const savedPage = localStorage.getItem('baby-day:current-page') as Page | null;
     const babyProfile = profile
@@ -85,9 +101,11 @@ function loadState(): AppState {
     return {
       babyProfile,
       achievedMilestones: milestones ? (JSON.parse(milestones) as string[]) : [],
+      skippedMilestones: skipped ? (JSON.parse(skipped) as string[]) : [],
       selectedWeek: 0,
       growthEntries: growth ? (JSON.parse(growth) as import('../types').GrowthEntry[]) : [],
       foodEntries: food ? (JSON.parse(food) as import('../types').FoodEntry[]) : [],
+      sleepEntries: sleep ? (JSON.parse(sleep) as import('../types').SleepEntry[]) : [],
       knowledgeBase: knowledgeBase ? (JSON.parse(knowledgeBase) as import('../types').KnowledgeEntry[]) : [],
       currentPage: savedPage && babyProfile ? savedPage : (babyProfile ? 'today' : 'onboarding'),
     };
@@ -116,12 +134,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [state.achievedMilestones]);
 
   useEffect(() => {
+    localStorage.setItem('baby-day:skipped-milestones', JSON.stringify(state.skippedMilestones));
+  }, [state.skippedMilestones]);
+
+  useEffect(() => {
     localStorage.setItem('baby-day:growth-entries', JSON.stringify(state.growthEntries));
   }, [state.growthEntries]);
 
   useEffect(() => {
     localStorage.setItem('baby-day:food-entries', JSON.stringify(state.foodEntries));
   }, [state.foodEntries]);
+
+  useEffect(() => {
+    localStorage.setItem('baby-day:sleep-entries', JSON.stringify(state.sleepEntries));
+  }, [state.sleepEntries]);
 
   useEffect(() => {
     localStorage.setItem('baby-day:knowledge-base', JSON.stringify(state.knowledgeBase));

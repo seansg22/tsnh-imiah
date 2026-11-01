@@ -1,12 +1,15 @@
 import { differenceInDays, differenceInWeeks, parseISO } from 'date-fns';
 import { milestones } from '../data/weeklyDevelopment';
+import { isOverdue } from './milestones';
 import { getFeeding } from '../constants/babyDefaults';
 import { MAX_WEEK, percentileOfZ, zScoreOf, type GrowthMetric } from '../data/whoGrowthData';
 import type { Lang } from '../i18n/langContext';
 import { solidsOf } from './solids';
-import type { AppState, MilkFields } from '../types';
+import { formatDuration, groupByDay, sleepMinutes } from './sleep';
+import { milkTotals } from './milkTotal';
+import type { AppState, MilkFields, SleepEntry } from '../types';
 
-export type AdviceKind = 'growth' | 'fooddiary' | 'milestones';
+export type AdviceKind = 'growth' | 'fooddiary' | 'milestones' | 'sleep';
 
 function babyInfo(state: AppState): string {
   const baby = state.babyProfile!;
@@ -43,7 +46,26 @@ function growthData(state: AppState): string {
   return rows.length ? rows.join('\n') : 'No growth entries yet.';
 }
 
-function foodData(state: AppState): string {
+export function sleepData(state: AppState): string {
+  const rows = groupByDay(state.sleepEntries).slice(0, 14).reverse().map(d => {
+    const one = (e: SleepEntry) =>
+      [
+        `${e.start}-${e.end} (${formatDuration(sleepMinutes(e.start, e.end))})`,
+        e.fallAsleepMin !== undefined && `took ${e.fallAsleepMin} min to fall asleep`,
+        e.wakeUps !== undefined && `woke ${e.wakeUps}x`,
+        e.wakeFeed && `fed when waking${e.wakeFeedMin !== undefined ? ` for ${e.wakeFeedMin} min` : ''}`,
+        e.fellAsleep?.length && `fell asleep: ${e.fellAsleep.join(' + ')}`,
+      ].filter(Boolean).join(', ');
+    const parts = [
+      d.naps.length && `naps ${formatDuration(d.napMin)}: ${d.naps.map(one).join('; ')}`,
+      d.nights.length && `night ${formatDuration(d.nightMin)}: ${d.nights.map(one).join('; ')}`,
+    ].filter(Boolean);
+    return `- ${d.date}: ${parts.join(' | ')} | total ${formatDuration(d.totalMin)}`;
+  });
+  return rows.length ? rows.join('\n') : 'No sleep entries yet.';
+}
+
+export function foodData(state: AppState): string {
   const rows = [...state.foodEntries].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 14).reverse().map(e => {
     const milk = (m: MilkFields, when: string) => [
       m.momTimes !== undefined && `${when} mom's milk ${m.momTimes}x${m.momMl !== undefined ? ` of ${m.momMl} ml` : ''}${m.momWays?.length ? ` (${m.momWays.map(w => (w === 'breast' ? 'breastfed' : 'from bottle')).join(' + ')})` : ''}`,
@@ -52,6 +74,7 @@ function foodData(state: AppState): string {
     const parts = [
       ...milk(e, 'daytime'),
       ...(e.night ? milk(e.night, 'night') : []),
+      milkTotals(e).all.ml > 0 && `total milk ${milkTotals(e).all.ml}${milkTotals(e).all.complete ? '' : '+'} ml (daytime ${milkTotals(e).day.ml}, night ${milkTotals(e).night.ml})`,
       ...solidsOf(e).map((m, i) => `${m.snack ? 'snack' : 'solid'} ${i + 1}: ${m.foods.join(', ')}${m.portion ? ` (${m.portion})` : ''}`),
       e.poop && `poop ${[e.poop.times !== undefined && `${e.poop.times}x`, e.poop.colors?.join('/'), e.poop.textures?.join('/')].filter(Boolean).join(', ')}`,
       e.allergy?.length && `reactions: ${e.allergy.join(', ')}`,
@@ -64,26 +87,28 @@ function foodData(state: AppState): string {
 function milestoneData(state: AppState): string {
   const week = differenceInWeeks(new Date(), parseISO(state.babyProfile!.birthDate));
   const done = new Set(state.achievedMilestones);
+  const skipped = new Set(state.skippedMilestones);
   const line = (m: (typeof milestones)[number]) => `- [${m.category}] ${m.label} (weeks ${m.weekRange[0]}-${m.weekRange[1]})`;
   const section = (title: string, list: typeof milestones) => `${title}:\n${list.length ? list.map(line).join('\n') : '- none'}`;
   return [
     section('Achieved', milestones.filter(m => done.has(m.id))),
-    section('Overdue (expected window passed, not achieved)', milestones.filter(m => !done.has(m.id) && m.weekRange[1] <= week)),
+    section('Overdue (expected window passed, not achieved)', milestones.filter(m => isOverdue(m, week, done, skipped))),
+    ...(skipped.size ? [section('Skipped on purpose by the family (vaccinations, do not nag)', milestones.filter(m => skipped.has(m.id)))] : []),
     section('Coming up (starts within 8 weeks)', milestones.filter(m => !done.has(m.id) && m.weekRange[0] > week - 1 && m.weekRange[0] <= week + 8)),
   ].join('\n\n');
 }
 
 // Hardcoded on purpose: the user cannot change what is asked.
 export function buildAdvicePrompt(kind: AdviceKind, state: AppState, lang: Lang) {
-  const topic = { growth: 'growth (weight, length, head circumference)', fooddiary: 'feeding and food diary', milestones: 'developmental milestones' }[kind];
+  const topic = { growth: 'growth (weight, length, head circumference)', fooddiary: 'feeding and food diary', milestones: 'developmental milestones', sleep: 'sleep (naps and night sleep)' }[kind];
   const system = `You are a careful baby development assistant.
 Rules:
 - Always answer in ${lang === 'vi' ? 'Vietnamese, warm and a little cute but not over the top' : 'English'}.
 - Review the baby's ${topic} data and give: 1) the current situation, 2) next steps.
 - Use two short sections with bullet points, 2 to 4 bullets each, one concise sentence per bullet.
 - Be practical and age-aware. If something may need a doctor, say so gently.`;
-  const data = { growth: growthData, fooddiary: foodData, milestones: milestoneData }[kind](state);
-  const heading = { growth: 'Growth entries', fooddiary: 'Recent food diary (up to 14 days)', milestones: 'Milestones' }[kind];
+  const data = { growth: growthData, fooddiary: foodData, milestones: milestoneData, sleep: sleepData }[kind](state);
+  const heading = { growth: 'Growth entries', fooddiary: 'Recent food diary (up to 14 days)', milestones: 'Milestones', sleep: 'Recent sleep diary (up to 14 days)' }[kind];
   const user = `${babyInfo(state)}\n\n${heading}:\n${data}\n\nWhat is the current situation and what should we do next?`;
   return { system, user };
 }

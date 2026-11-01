@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { X, Check, Plus, Baby, Sun, Moon, Utensils, TriangleAlert } from 'lucide-react';
+import { useState } from 'react';
+import { X, Plus, Baby, Sun, Moon, Utensils, TriangleAlert } from 'lucide-react';
 import { useLang } from '../../i18n/langContext';
 import type { UiKey } from '../../i18n/ui';
 import { useApp } from '../../context/appStateContext';
@@ -11,7 +10,9 @@ import type { FoodEntry } from '../../types';
 import { DateInput } from '../shared/DateInput';
 import { WheelPicker } from '../shared/WheelPicker';
 import { PoopIcon } from '../shared/PoopIcon';
-import { chipCls } from '../shared/chipStyle';
+import { Chip } from '../shared/Chip';
+import { CheckBox } from '../shared/CheckBox';
+import { FullPageForm } from '../shared/FullPageForm';
 import { ALLERGIES, FOODS, PORTIONS, TOP_FOODS, MAIN_FOODS, SNACK_FOODS, POOP_COLORS, POOP_TEXTURES, type PoopColor } from './foodOptions';
 
 const TIMES = Array.from({ length: 13 }, (_, i) => i + 1);
@@ -132,13 +133,7 @@ function SolidBlock({ title, value, onChange, onRemove }: BlockProps) {
           </button>
         )}
       </div>
-      <label className="flex items-center gap-2 text-xs font-bold text-app-text cursor-pointer has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-peach/40 rounded">
-        <input type="checkbox" checked={value.snack} onChange={() => onChange({ ...value, snack: !value.snack })} className="peer sr-only" />
-        <span className="w-5 h-5 shrink-0 flex items-center justify-center rounded-md border-2 border-peachLight bg-white text-transparent transition-colors peer-checked:bg-peach peer-checked:border-peach peer-checked:text-white">
-          <Check size={14} strokeWidth={3.5} />
-        </span>
-        {t('fd.snackCheck')}
-      </label>
+      <CheckBox checked={value.snack} onChange={() => onChange({ ...value, snack: !value.snack })} label={t('fd.snackCheck')} />
       <label className={labelCls}>{t('fd.what')}</label>
       <div className="flex flex-wrap gap-2">
         {presets.map(f => (
@@ -185,18 +180,6 @@ function SolidBlock({ title, value, onChange, onRemove }: BlockProps) {
         </div>
       )}
     </div>
-  );
-}
-
-function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${chipCls(on)}`}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -251,13 +234,6 @@ export function FoodDiaryForm({ onSave, onCancel, initialEntry, prefill }: Props
     });
   }
 
-  // add and edit both open as a full page with the save button pinned at the bottom
-  useEffect(() => {
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden'; // the page behind must not scroll
-    return () => { document.body.style.overflow = prev; };
-  }, []);
-
   const footer = (
     <>
       <button
@@ -270,16 +246,8 @@ export function FoodDiaryForm({ onSave, onCancel, initialEntry, prefill }: Props
     </>
   );
 
-  const form = (
-    <div className="fixed inset-y-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-[60] bg-white flex flex-col">
-      <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-peachLight">
-        <p className="font-bold text-app-text text-sm">{initialEntry ? t('fd.edit') : t('fd.add')}</p>
-        <button onClick={onCancel} className="p-1 text-textMuted">
-          <X size={16} strokeWidth={2} />
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+  return (
+    <FullPageForm title={initialEntry ? t('fd.edit') : t('fd.add')} onClose={onCancel} footer={footer}>
         <div>
           <label className={labelCls}>{t('fd.date')}</label>
           <DateInput compact value={date} max={today} onChange={setDate} />
@@ -352,10 +320,6 @@ export function FoodDiaryForm({ onSave, onCancel, initialEntry, prefill }: Props
           <input type="text" placeholder={t('fd.phAllergy')} value={otherAllergy} onChange={e => setOtherAllergy(e.target.value)} className={inputCls} />
         </section>
 
-      </div>
-      <div className="px-4 py-3 bg-white border-t border-peachLight space-y-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">{footer}</div>
-    </div>
+    </FullPageForm>
   );
-  // portal: a transformed ancestor (page fade-in) would otherwise trap position: fixed
-  return createPortal(form, document.body);
 }
