@@ -58,6 +58,11 @@ function getSolidsBanner(birthDate: string | null, babyName: string, t: (key: Ui
   };
 }
 
+// the recipe title in the selected language only
+function recipeTitle(recipe: BabyRecipe, lang: Lang) {
+  return lang === 'vi' ? recipe.vietnameseTitle : recipe.englishTitle;
+}
+
 function getRecipeYoutubeUrl(recipe: BabyRecipe) {
   const query = `${recipe.vietnameseTitle} ăn dặm cho bé ${recipe.month} tháng`;
   return `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
@@ -84,8 +89,7 @@ function RecipeCard({
       <div className="min-w-0 flex-1 p-2.5">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="line-clamp-1 text-sm font-extrabold leading-snug text-app-text">{recipe.vietnameseTitle}</p>
-            <p className="mt-0.5 line-clamp-1 text-xs font-bold leading-tight text-textMuted">{recipe.englishTitle}</p>
+            <p className="line-clamp-1 text-sm font-extrabold leading-snug text-app-text">{recipeTitle(recipe, lang)}</p>
           </div>
           <ChevronRight size={16} strokeWidth={2.4} className="mt-0.5 flex-shrink-0 text-textMuted" />
         </div>
@@ -129,15 +133,14 @@ function RecipeDetail({
         <button type="button" onClick={onBack} className="flex h-9 w-9 items-center justify-center rounded-full bg-peachLight text-peachDark">
           <ArrowLeft size={20} strokeWidth={2.4} />
         </button>
-        <p className="mx-3 min-w-0 flex-1 truncate text-center text-sm font-extrabold text-app-text">{recipe.vietnameseTitle}</p>
+        <p className="mx-3 min-w-0 flex-1 truncate text-center text-sm font-extrabold text-app-text">{recipeTitle(recipe, lang)}</p>
         <div className="h-9 w-9" />
       </div>
 
       <div className="px-4 pb-6">
         <div className="flex items-start justify-between gap-4 pt-2">
           <div className="min-w-0">
-            <h1 className="text-xl font-extrabold leading-tight text-app-text">{recipe.vietnameseTitle}</h1>
-            <p className="mt-1 text-sm font-bold leading-tight text-textMuted">{recipe.englishTitle}</p>
+            <h1 className="text-xl font-extrabold leading-tight text-app-text">{recipeTitle(recipe, lang)}</h1>
           </div>
         </div>
 
@@ -170,7 +173,7 @@ function RecipeDetail({
           target="_blank"
           rel="noopener noreferrer"
           className="mt-3 flex w-full items-center justify-between gap-3 rounded-xl bg-red-500 px-3 py-2.5 text-white shadow-sm active:scale-[0.99] transition-transform"
-          aria-label={t('food.openYtAria', { title: recipe.vietnameseTitle })}
+          aria-label={t('food.openYtAria', { title: recipeTitle(recipe, lang) })}
         >
           <span className="flex min-w-0 items-center gap-2">
             <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-white/20">

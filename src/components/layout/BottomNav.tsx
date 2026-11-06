@@ -89,7 +89,7 @@ export function BottomNav() {
     >
       {/* blur the page content under and around the bar, fading out upward */}
       <div
-        className="absolute inset-x-0 -top-3 bottom-0 pointer-events-none backdrop-blur-[3px]"
+        className="absolute inset-x-0 -top-3 bottom-0 pointer-events-none backdrop-blur-[5px]"
         style={{
           WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 45%)',
           maskImage: 'linear-gradient(to bottom, transparent, black 45%)',

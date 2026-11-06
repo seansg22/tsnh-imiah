@@ -355,9 +355,6 @@ export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
             {t(r.key, { n: r.n })}
           </button>
         ))}
-        <button className={pill(false, true)} onClick={() => setView(centered(view.end - view.start))}>
-          {t('chart.today')}
-        </button>
       </div>
       <p className="text-xs text-textMuted mt-2">{t('chart.hint')}</p>
 

@@ -97,7 +97,7 @@ export function SleepForm({ kind, onSave, onCancel, initialEntry, prefill }: Pro
         <button
           onClick={handleSave}
           disabled={blocked}
-          className="w-full py-2.5 rounded-xl text-sm font-bold bg-peach text-white disabled:opacity-40 transition-opacity"
+          className="w-full py-2.5 rounded-xl text-sm font-bold bg-peach text-white disabled:bg-[#FBD1B4] disabled:shadow-none"
         >
           {initialEntry ? t('fd.update') : t('fd.save')}
         </button>

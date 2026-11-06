@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Plus, Baby, Sun, Moon, Utensils, TriangleAlert } from 'lucide-react';
+import { X, Plus, Baby, Sun, Moon, Utensils, TriangleAlert, Sparkles, Cookie } from 'lucide-react';
 import { useLang } from '../../i18n/langContext';
 import type { UiKey } from '../../i18n/ui';
 import { useApp } from '../../context/appStateContext';
@@ -12,7 +12,6 @@ import { DateInput } from '../shared/DateInput';
 import { WheelPicker } from '../shared/WheelPicker';
 import { PoopIcon } from '../shared/PoopIcon';
 import { Chip } from '../shared/Chip';
-import { CheckBox } from '../shared/CheckBox';
 import { AutoTextarea } from '../shared/AutoTextarea';
 import { FullPageForm } from '../shared/FullPageForm';
 import { ALLERGIES, FOODS, PORTIONS, TOP_FOODS, MAIN_FOODS, SNACK_FOODS, POOP_COLORS, POOP_TEXTURES, type PoopColor } from './foodOptions';
@@ -121,24 +120,58 @@ function SolidBlock({ title, value, onChange, onRemove }: BlockProps) {
   const extraFoods = foods.filter(f => !(presets as string[]).includes(f)).sort(byLabel);
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <h3 className={titleCls}><Utensils size={16} strokeWidth={2.5} className="text-peachDark" />{title}</h3>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <h3 className={titleCls}><Utensils size={16} strokeWidth={2.5} className="text-peachDark" />{title}</h3>
+          {/* snack switch in the header: label + a real sliding knob so it reads as a toggle */}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={value.snack}
+            aria-label={t('fd.snackCheck')}
+            onClick={() => onChange({ ...value, snack: !value.snack })}
+            className={`flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-full border-2 border-warm bg-white text-xs font-bold transition-colors active:scale-95 ${value.snack ? 'text-peachDark' : 'text-textMuted'}`}
+          >
+            <Cookie size={14} strokeWidth={2.5} />
+            {t('fd.snack')}
+            <span className={`relative h-5 w-9 rounded-full transition-colors ${value.snack ? 'bg-peach' : 'bg-warm'}`}>
+              <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${value.snack ? 'translate-x-4' : ''}`} />
+            </span>
+          </button>
+        </div>
         {onRemove && (
-          <button type="button" aria-label="Remove" onClick={onRemove} className="p-1 rounded-full bg-warm text-textMuted hover:text-peachDark transition-colors">
+          <button type="button" aria-label="Remove" onClick={onRemove} className="flex-shrink-0 p-1 rounded-full bg-warm text-textMuted hover:text-peachDark transition-colors">
             <X size={12} strokeWidth={2.5} />
           </button>
         )}
       </div>
-      <CheckBox checked={value.snack} onChange={() => onChange({ ...value, snack: !value.snack })} label={t('fd.snackCheck')} />
       <label className={labelCls}>{t('fd.what')}</label>
       <div className="flex flex-wrap gap-2">
         {presets.map(f => (
           <Chip key={f} on={foods.includes(f)} onClick={() => toggleFood(f)}>{t(`fd.food.${f}` as UiKey)}</Chip>
         ))}
-        {extraFoods.map(f => (
-          <Chip key={f} on onClick={() => toggleFood(f)}>{foodLabel(f)}</Chip>
-        ))}
       </div>
+      {extraFoods.length > 0 && ( // typed foods: own row right under the presets, dashed + sparkle + X mark them as custom
+        <div className="flex flex-wrap gap-2">
+        {extraFoods.map(f => (
+          <span
+            key={f}
+            className="flex max-w-full items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full border-2 border-dashed border-peachDark bg-gradient-to-r from-peachLight to-white text-xs font-bold text-peachDark [overflow-wrap:anywhere]"
+          >
+            <Sparkles size={12} strokeWidth={2.5} className="flex-shrink-0" />
+            {f}
+            <button
+              type="button"
+              aria-label={`${t('fd.removeCustom')} ${f}`}
+              onClick={() => toggleFood(f)}
+              className="flex-shrink-0 p-0.5 rounded-full hover:bg-peachDark/20 active:scale-90 transition"
+            >
+              <X size={12} strokeWidth={3} />
+            </button>
+          </span>
+        ))}
+        </div>
+      )}
       <div className="flex gap-2">
         <input
           type="text"
@@ -162,11 +195,10 @@ function SolidBlock({ title, value, onChange, onRemove }: BlockProps) {
         <div>
           <label className={labelCls}>{t('fd.mlMealLabel')}</label>
           {/* free text; an older chip key shows as its label, and stays saved as is until typed over */}
-          <input
-            type="text"
+          <AutoTextarea
             placeholder={t('fd.phPortion')}
             value={(PORTIONS as readonly string[]).includes(portion) ? t(`fd.portion.${portion}` as UiKey) : portion}
-            onChange={e => onChange({ ...value, portion: e.target.value })}
+            onChange={v => onChange({ ...value, portion: v })}
             className={smallInputCls}
           />
         </div>
@@ -235,7 +267,7 @@ export function FoodDiaryForm({ onSave, onCancel, initialEntry }: Props) {
       <button
         onClick={handleSave}
         disabled={!canSave}
-        className="w-full py-2.5 rounded-xl text-sm font-bold bg-peach text-white disabled:opacity-40 transition-opacity"
+        className="w-full py-2.5 rounded-xl text-sm font-bold bg-peach text-white disabled:bg-[#FBD1B4] disabled:shadow-none"
       >
         {initialEntry ? t('fd.update') : t('fd.save')}
       </button>

@@ -184,7 +184,7 @@ export function WonderWeekCalendar({ eddDate }: Props) {
                   if (suppressClick.current) { suppressClick.current = false; return; }
                   setSelectedDay(day);
                 }}
-                className={`relative h-12 rounded-2xl flex flex-col items-center justify-center transition-transform active:scale-90 ${tile} ${isPast ? 'opacity-55' : ''} ${isSelected ? 'ring-2 ring-peachDark scale-105' : ''}`}
+                className={`relative h-12 rounded-2xl flex flex-col items-center justify-center transition-transform active:scale-90 ${tile} ${isPast ? 'opacity-55' : ''} ${isSelected ? 'ring-2 ring-inset ring-peachDark' : ''}`}
               >
                 <span className="text-sm font-bold leading-none">{format(day, 'd')}</span>
                 <span className={`mt-1 h-2 text-[8px] leading-none font-semibold ${isToday ? 'text-white/80' : 'text-textMuted'}`}>{showWeek ? `w${wonderWeek}` : ''}</span>

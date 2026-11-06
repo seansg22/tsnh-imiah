@@ -164,7 +164,7 @@ export function GrowthScreen() {
                   {metrics.map(m => {
                     const val = entry[m];
                     const st = val === undefined ? null : statOf(entry, m);
-                    const tone = !st ? '' : st.p > 97 ? 'bg-red-50 text-red-500' : st.p < 3 ? 'bg-purple-50 text-purple-500' : 'bg-green-50 text-green-600';
+                    const tone = !st ? '' : st.p > 97 ? 'bg-red-50 text-red-500' : st.p < 3 ? 'bg-purple-50 text-purple-500' : 'text-green-600';
                     const dot = !st ? '' : st.p > 97 ? 'bg-red-500' : st.p < 3 ? 'bg-purple-500' : 'bg-green-500';
                     const Icon = metricIcon[m];
                     return (

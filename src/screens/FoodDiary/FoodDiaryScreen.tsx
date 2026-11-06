@@ -117,14 +117,12 @@ export function FoodDiaryScreen() {
                 rows: [{ name: m.foods.map(foodLabel).join(', '), parts: [m.portion && portionLabel(m.portion)] }],
               }))
             : undefined;
-          const pill = 'ml-1.5 px-1.5 py-0.5 rounded-full bg-peachLight text-peachDark text-[10px] font-bold align-middle';
           const renderRow = (row: Row, i: number) => {
-            const parts = row.parts.filter(Boolean);
+            const parts = [...row.parts, ...(row.badges ?? [])].filter(Boolean); // badges show as plain text, not tags
             return (
               <p key={i} className="text-sm leading-snug [overflow-wrap:anywhere]">
                 <span className="font-semibold text-app-text">{row.name}</span>
                 {parts.length > 0 && <span className="text-textMuted"> · {parts.join(' · ')}</span>}
-                {row.badges?.map(b => <span key={b} className={pill}>{b}</span>)}
               </p>
             );
           };
@@ -206,7 +204,7 @@ export function FoodDiaryScreen() {
                 </button>
               </div>
               {/* the detail slides open: a grid row going from 0fr to 1fr animates the height */}
-              <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`} aria-hidden={!isOpen}>
+              <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`} aria-hidden={!isOpen} onClick={() => toggle(entry.id)}>
               <div className="overflow-hidden">
               {groups.length > 0 && (
                 // one grid for the whole card: icon | label | content, so every column lines up across rows
@@ -229,7 +227,7 @@ export function FoodDiaryScreen() {
                     {t('fd.allergy')}
                   </p>
                   {/* the reactions only show when the card is open */}
-                  <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                  <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`} onClick={() => toggle(entry.id)}>
                     <div className="overflow-hidden">
                       <div className="pl-[22px] pt-1">
                         {/* one reaction per line; long words and new lines wrap inside the card */}

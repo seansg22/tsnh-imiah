@@ -35,7 +35,7 @@ export function FullPageForm({ title, onClose, footer, children }: Props) {
       {/* like the app bottom bar: no background, the content scrolling under it is blurred, fading out upward */}
       <div className="absolute inset-x-0 bottom-0 px-4 pt-3 space-y-2 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div
-          className="absolute inset-x-0 top-0 bottom-0 pointer-events-none backdrop-blur-[3px]"
+          className="absolute inset-x-0 top-0 bottom-0 pointer-events-none backdrop-blur-[5px]"
           style={{
             WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 45%)',
             maskImage: 'linear-gradient(to bottom, transparent, black 45%)',

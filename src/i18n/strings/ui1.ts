@@ -98,7 +98,6 @@ export const ui1 = defineStrings(
     'chart.months': '{n} mo',
     'chart.years': '{n} yr',
     'chart.monthN': 'month {n}',
-    'chart.today': 'Today',
     'chart.hint': 'Pinch or drag the chart to zoom and move.',
     // banners
     'banner.busy': 'Bet {name} has been busy!',
@@ -211,7 +210,6 @@ export const ui1 = defineStrings(
     'chart.months': '{n} tháng',
     'chart.years': '{n} năm',
     'chart.monthN': 'tháng {n}',
-    'chart.today': 'Hôm nay',
     'chart.hint': 'Chụm hoặc kéo biểu đồ để phóng to và di chuyển nhé.',
     'banner.busy': '{name} học thêm điều mới nè!',
     'banner.tickOne': 'Còn {n} cột mốc chưa đánh dấu',
