@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { emptySolid, hasFoods, milkOut, milkSeed, newMilkRecord, solidOut, solidSeed, withValue } from './foodForm';
+import { emptySolid, foldTimes, hasFoods, milkOut, milkSeed, newMilkRecord, solidOut, solidSeed, withValue } from './foodForm';
 import { solidsOf } from './solids';
 import type { FoodEntry } from '../types';
 
@@ -25,9 +25,9 @@ describe('milkOut', () => {
   const all = { momTimes: 3, momMl: 60, momWays: ['breast' as const], formulaTimes: 2, formulaMl: 80 };
 
   it('only keeps the fields of the chosen kind', () => {
-    expect(milkOut({ ...all, kind: 'mom' })).toEqual({ momTimes: 3, momMl: 60, momWays: ['breast'] });
-    expect(milkOut({ ...all, kind: 'formula' })).toEqual({ formulaTimes: 2, formulaMl: 80 });
-    expect(milkOut({ ...all, kind: 'mix' })).toEqual(all);
+    expect(milkOut({ ...all, kind: 'mom' })).toEqual({ momMl: 60, momWays: ['breast'] });
+    expect(milkOut({ ...all, kind: 'formula' })).toEqual({ formulaMl: 80 });
+    expect(milkOut({ ...all, kind: 'mix' })).toEqual({ momMl: 60, momWays: ['breast'], formulaMl: 80 });
   });
 
   it('saves nothing when no kind is picked or nothing is filled', () => {
@@ -48,8 +48,12 @@ describe('editing an old entry loses nothing', () => {
     allergy: ['cough'],
   };
 
-  it('milk goes through form seed and output unchanged', () => {
-    expect(milkOut(milkSeed(old))).toEqual({ momTimes: 5, formulaTimes: 2, formulaMl: 90 });
+  it('milk goes through form seed and output: times x ml folds into ml, lone times stay', () => {
+    expect(milkOut(milkSeed(old))).toEqual({ momTimes: 5, formulaMl: 180 });
+  });
+
+  it('a lone old times is dropped once an ml is picked (the picked ml is what shows)', () => {
+    expect(milkOut({ ...milkSeed(old), momMl: 60 })).toEqual({ momMl: 60, formulaMl: 180 });
   });
 
   it('the solid and its old portion survive', () => {
@@ -90,9 +94,24 @@ describe('withValue', () => {
   });
 });
 
+describe('foldTimes', () => {
+  it('turns times x ml into ml', () => {
+    expect(foldTimes({ momTimes: 3, momMl: 60, formulaTimes: 2, formulaMl: 90 })).toEqual({ momMl: 180, formulaMl: 180 });
+  });
+
+  it('keeps new records (ml only) and empty records as they are', () => {
+    expect(foldTimes({ momMl: 120, momWays: ['bottle'] })).toEqual({ momMl: 120, momWays: ['bottle'] });
+    expect(foldTimes({})).toEqual({});
+  });
+
+  it('keeps times when there is no ml', () => {
+    expect(foldTimes({ momTimes: 4 })).toEqual({ momTimes: 4 });
+  });
+});
+
 describe('newMilkRecord', () => {
-  it('starts on mom milk with 1 feed, and formula is also 1 feed when picked', () => {
-    expect(milkOut(newMilkRecord())).toEqual({ momTimes: 1 });
-    expect(milkOut({ ...newMilkRecord(), kind: 'formula' })).toEqual({ formulaTimes: 1 });
+  it('starts on mom milk with nothing filled', () => {
+    expect(newMilkRecord()).toEqual({ kind: 'mom' });
+    expect(milkOut(newMilkRecord())).toEqual({});
   });
 });

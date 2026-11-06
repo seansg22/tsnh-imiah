@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Pencil, Sparkles } from 'lucide-react';
+import { Plus, Trash2, Pencil, Sparkles, Scale, Ruler, Baby, type LucideIcon } from 'lucide-react';
 import { parseISO, differenceInWeeks, differenceInDays } from 'date-fns';
 import { AdviceModal } from '../../components/ai/AdviceModal';
 import { useLang } from '../../i18n/langContext';
@@ -10,9 +10,11 @@ import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { GrowthEntryForm } from '../../components/growth/GrowthEntryForm';
 import { type GrowthMetric, metricConfig, zScoreOf, percentileOfZ, MAX_WEEK } from '../../data/whoGrowthData';
 import type { GrowthEntry } from '../../types';
-import { chipCls } from '../../components/shared/chipStyle';
+import { cardShadow } from '../../components/shared/cardStyle';
+import { SegmentedTabs } from '../../components/shared/SegmentedTabs';
 
 const metrics: GrowthMetric[] = ['weight', 'length', 'head'];
+const metricIcon: Record<GrowthMetric, LucideIcon> = { weight: Scale, length: Ruler, head: Baby };
 
 export function GrowthScreen() {
   const { t, lang } = useLang();
@@ -20,32 +22,27 @@ export function GrowthScreen() {
   const [activeMetric, setActiveMetric] = useState<GrowthMetric>('weight');
   const [showAdvice, setShowAdvice] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<GrowthEntry | null>(null);
+  const [editingIds, setEditingIds] = useState<string[]>([]); // many edit forms can be open, and the add form too
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const birthDate = state.babyProfile?.birthDate ?? '';
   const gender = state.babyProfile?.gender ?? 'girl';
   const entries = state.growthEntries;
 
-  function handleSave(entry: GrowthEntry) {
-    if (editingEntry) {
-      dispatch({ type: 'UPDATE_GROWTH_ENTRY', payload: entry });
-      setEditingEntry(null);
-    } else {
-      dispatch({ type: 'ADD_GROWTH_ENTRY', payload: entry });
-      setShowForm(false);
-    }
+  function handleAdd(entry: GrowthEntry) {
+    dispatch({ type: 'ADD_GROWTH_ENTRY', payload: entry });
+    setShowForm(false);
   }
 
-  function handleCancel() {
-    setShowForm(false);
-    setEditingEntry(null);
+  const closeEdit = (id: string) => setEditingIds(prev => prev.filter(x => x !== id));
+
+  function handleUpdate(entry: GrowthEntry) {
+    dispatch({ type: 'UPDATE_GROWTH_ENTRY', payload: entry });
+    closeEdit(entry.id);
   }
 
   function handleEdit(entry: GrowthEntry) {
-    setShowForm(false);
-    setEditingEntry(entry);
-    window.scrollTo({ top: 0, behavior: 'instant' }); // the form is at the top
+    setEditingIds(prev => (prev.includes(entry.id) ? prev : [...prev, entry.id]));
   }
 
   function handleDelete(id: string) {
@@ -85,21 +82,16 @@ export function GrowthScreen() {
       </div>
 
       {/* Metric tabs */}
-      <div className="flex gap-2 px-4 pb-4">
-        {metrics.map(m => (
-          <button
-            key={m}
-            onClick={() => setActiveMetric(m)}
-            className={`px-3 py-1 rounded-full text-xs font-bold ${chipCls(activeMetric === m)}`}
-          >
-            {t(`growth.metric.${m}`)}
-          </button>
-        ))}
-      </div>
+      <SegmentedTabs
+        className="mx-4 mb-4"
+        options={metrics.map(m => ({ key: m, label: t(`growth.metric.${m}`) }))}
+        value={activeMetric}
+        onChange={setActiveMetric}
+      />
 
       {/* Chart */}
       {birthDate ? (
-        <div className="mx-4 bg-white rounded-2xl p-4 shadow-sm mb-4">
+        <div className={`mx-4 bg-white rounded-2xl p-4 mb-4 ${cardShadow}`}>
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-bold text-app-text">
               {t(`growth.metric.${activeMetric}`)} ({cfg.unit})
@@ -117,19 +109,12 @@ export function GrowthScreen() {
 
       {/* Add / Edit form */}
       <div className="px-4 mb-4">
-        {editingEntry ? (
-          <GrowthEntryForm
-            key={editingEntry.id}
-            initialEntry={editingEntry}
-            onSave={handleSave}
-            onCancel={handleCancel}
-          />
-        ) : showForm ? (
-          <GrowthEntryForm onSave={handleSave} onCancel={handleCancel} />
+        {showForm ? (
+          <GrowthEntryForm onSave={handleAdd} onCancel={() => setShowForm(false)} />
         ) : (
           <button
             onClick={() => setShowForm(true)}
-            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border-2 border-dashed border-peachLight text-peachDark text-xs font-bold hover:bg-peachLight/30 transition-colors"
+            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border-2 border-dashed border-peach/60 bg-white/60 text-peachDark text-xs font-bold hover:bg-white transition-colors"
           >
             <Plus size={14} strokeWidth={2.5} />
             {t('growth.add')}
@@ -139,17 +124,20 @@ export function GrowthScreen() {
 
       {/* Entry list */}
       {entries.length > 0 && (
-        <div className="px-4 space-y-2">
+        <div className="px-4 space-y-4">
           <p className="text-xs font-bold text-textMuted uppercase tracking-wide mb-1">{t('growth.history')}</p>
           {[...entries].sort((a, b) => b.date.localeCompare(a.date)).map(entry => {
             const ageWeeks = birthDate
               ? differenceInWeeks(parseISO(entry.date), parseISO(birthDate))
               : null;
-            const isEditing = editingEntry?.id === entry.id;
+            // editing: the form takes the place of the card
+            if (editingIds.includes(entry.id)) {
+              return <GrowthEntryForm key={entry.id} initialEntry={entry} onSave={handleUpdate} onCancel={() => closeEdit(entry.id)} />;
+            }
             return (
               <div
                 key={entry.id}
-                className={`bg-white rounded-xl pl-4 pr-1 py-2.5 shadow-sm transition-opacity ${isEditing ? 'opacity-50' : ''}`}
+                className={`bg-white rounded-2xl pl-4 pr-1 py-3 ${cardShadow}`}
               >
                 <div className="flex items-center gap-2">
                   <p className="flex-1 min-w-0 text-sm font-bold text-app-text">
@@ -171,26 +159,34 @@ export function GrowthScreen() {
                     <Trash2 size={15} strokeWidth={2} />
                   </button>
                 </div>
-                <div className="flex gap-6 mt-2 pr-3">
+                {/* one tile per measure: value + percentile pill, and a gauge with a dot where baby sits among 100 babies (the Z score is in the tooltip) */}
+                <div className="mt-2 mr-3 flex gap-2">
                   {metrics.map(m => {
                     const val = entry[m];
                     const st = val === undefined ? null : statOf(entry, m);
                     const tone = !st ? '' : st.p > 97 ? 'bg-red-50 text-red-500' : st.p < 3 ? 'bg-purple-50 text-purple-500' : 'bg-green-50 text-green-600';
+                    const dot = !st ? '' : st.p > 97 ? 'bg-red-500' : st.p < 3 ? 'bg-purple-500' : 'bg-green-500';
+                    const Icon = metricIcon[m];
                     return (
-                      <div key={m} className="min-w-0">
-                        <p className="text-xs font-bold text-peachDark mb-0.5">{t(`growth.metric.${m}`)}</p>
-                        {val === undefined ? (
-                          <p className="text-sm text-textMuted">-</p>
-                        ) : (
-                          <>
-                            <p className="text-sm font-semibold text-app-text leading-snug">{m === 'weight' ? `${val} kg` : `${val} cm`}</p>
-                            {st && (
-                              <div className="mt-0.5 flex flex-col items-start gap-0.5">
-                                <span className={`px-1.5 py-0.5 rounded-full text-[11px] font-bold ${tone}`}>P{Math.round(st.p)}</span>
-                                <span className="text-xs text-textMuted">Z {st.z.toFixed(1)}</span>
-                              </div>
-                            )}
-                          </>
+                      <div key={m} title={st ? `Z ${st.z.toFixed(1)}` : undefined} className="min-w-0 flex-1 rounded-2xl bg-peachLight/50 px-2.5 py-2">
+                        <p className="flex items-center gap-1 text-peachDark">
+                          <Icon size={13} strokeWidth={2.5} className="shrink-0" />
+                          <span className="truncate text-[11px] font-semibold leading-none text-textMuted">{t(`growth.metric.${m}`)}</span>
+                        </p>
+                        <div className="mt-1.5 flex items-center justify-between gap-1">
+                          {val === undefined ? (
+                            <p className="text-base font-extrabold leading-none text-textMuted">-</p>
+                          ) : (
+                            <p className="whitespace-nowrap text-base font-extrabold leading-none text-app-text">
+                              {val}<span className="ml-0.5 text-[11px] font-bold text-textMuted">{m === 'weight' ? 'kg' : 'cm'}</span>
+                            </p>
+                          )}
+                          {st && <span className={`px-1.5 py-0.5 rounded-full text-[11px] font-bold leading-none ${tone}`}>P{Math.round(st.p)}</span>}
+                        </div>
+                        {st && (
+                          <div className="relative mt-2 h-1 rounded-full bg-white">
+                            <span className={`absolute top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-white ${dot}`} style={{ left: `${Math.min(97, Math.max(3, st.p))}%` }} />
+                          </div>
                         )}
                       </div>
                     );

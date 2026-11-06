@@ -6,26 +6,9 @@ import { useLang } from '../../i18n/langContext';
 import { formatDate } from '../../i18n/date';
 import { TextInput } from '../../components/shared/TextInput';
 import { DateInput } from '../../components/shared/DateInput';
-import { DEFAULT_EDD, getFeeding, toLegacyMethod } from '../../constants/babyDefaults';
-import type { FeedingWay, KnowledgeEntry, MilkType } from '../../types';
-
-// Add or remove a value; `keepOne` stops the last one from being removed.
-function toggle<T>(list: T[], value: T, keepOne = false): T[] {
-  if (!list.includes(value)) return [...list, value];
-  return keepOne && list.length === 1 ? list : list.filter(v => v !== value);
-}
-
-function CheckRow({ label, checked, onChange }: { label: string; checked: boolean; onChange: () => void }) {
-  return (
-    <label className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-cream border-2 border-peachLight text-sm font-bold text-app-text cursor-pointer transition-colors has-[:checked]:bg-peachLight/40 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-peach/40">
-      <input type="checkbox" checked={checked} onChange={onChange} className="peer sr-only" />
-      <span className="w-5 h-5 shrink-0 flex items-center justify-center rounded-md border-2 border-peachLight bg-white text-transparent transition-colors peer-checked:bg-peach peer-checked:border-peach peer-checked:text-white">
-        <Check size={14} strokeWidth={3.5} />
-      </span>
-      {label}
-    </label>
-  );
-}
+import { DEFAULT_EDD } from '../../constants/babyDefaults';
+import type { KnowledgeEntry } from '../../types';
+import { cardShadow } from '../../components/shared/cardStyle';
 
 export function BabyProfileScreen() {
   const { state, dispatch } = useApp();
@@ -33,13 +16,7 @@ export function BabyProfileScreen() {
   const [name, setName] = useState(state.babyProfile?.name ?? '');
   const [birthDate, setBirthDate] = useState(state.babyProfile?.birthDate ?? '');
   const [edd, setEdd] = useState(state.babyProfile?.edd ?? DEFAULT_EDD);
-  const [solidsStartDate, setSolidsStartDate] = useState(state.babyProfile?.solidsStartDate ?? '');
   const [gender, setGender] = useState<'girl' | 'boy'>(state.babyProfile?.gender ?? 'girl');
-  const initialFeeding = state.babyProfile ? getFeeding(state.babyProfile) : { milk: ['mom'] as MilkType[], ways: [] as FeedingWay[], other: '', milkNotes: '' };
-  const [milkTypes, setMilkTypes] = useState<MilkType[]>(initialFeeding.milk);
-  const [milkNotes, setMilkNotes] = useState(initialFeeding.milkNotes);
-  const [feedingWays, setFeedingWays] = useState<FeedingWay[]>(initialFeeding.ways);
-  const [feedingWayOther, setFeedingWayOther] = useState(initialFeeding.other);
   const [notes, setNotes] = useState(state.babyProfile?.notes ?? '');
 
   const [editingKnowledgeId, setEditingKnowledgeId] = useState<string | null>(null);
@@ -67,6 +44,7 @@ export function BabyProfileScreen() {
 
   // Auto-save the baby profile shortly after any field changes (skip the
   // initial mount so loading the saved profile doesn't trigger a save).
+  const [savedProfile] = useState(state.babyProfile); // fields this page no longer edits (milk type, feeding ways, solids start date) are kept from it
   const isFirstRender = useRef(true);
   useEffect(() => {
     if (isFirstRender.current) {
@@ -78,29 +56,24 @@ export function BabyProfileScreen() {
       dispatch({
         type: 'SET_BABY_PROFILE',
         payload: {
+          ...savedProfile,
           name: name.trim(),
           birthDate,
           gender,
-          feedingMethod: toLegacyMethod(milkTypes, feedingWays),
-          milkTypes,
-          milkNotes: milkTypes.length > 1 ? milkNotes : '',
-          feedingWays,
-          feedingWayOther,
           edd: edd || DEFAULT_EDD,
-          solidsStartDate,
           notes,
         },
       });
     }, 400);
     return () => clearTimeout(timeout);
-  }, [name, birthDate, edd, solidsStartDate, gender, milkTypes, milkNotes, feedingWays, feedingWayOther, notes, dispatch]);
+  }, [savedProfile, name, birthDate, edd, gender, notes, dispatch]);
 
   return (
     <div className="fade-in px-4 pt-6 pb-8">
       <h1 className="text-2xl font-extrabold text-app-text">{t('bp.title')}</h1>
       <p className="text-sm text-textMuted mt-1">{t('bp.subtitle')}</p>
 
-      <div className="bg-white rounded-2xl p-4 shadow-sm mt-6 space-y-3">
+      <div className={`bg-white rounded-2xl p-4 mt-6 space-y-3 ${cardShadow}`}>
         <div className="flex gap-2">
           <div className="flex-1">
             <p className="text-xs font-semibold text-textMuted mb-1 uppercase tracking-wide">{t('bp.name')}</p>
@@ -135,65 +108,6 @@ export function BabyProfileScreen() {
           <p className="text-[11px] text-textMuted mt-1">{t('bp.eddHint')}</p>
         </div>
         <div>
-          <p className="text-xs font-semibold text-textMuted mb-1 uppercase tracking-wide">{t('bp.milk')}</p>
-          <div className="space-y-1.5">
-            {([['mom', t('bp.momMilk')], ['formula', t('bp.formula')]] as [MilkType, string][]).map(([value, label]) => (
-              <CheckRow
-                key={value}
-                label={label}
-                checked={milkTypes.includes(value)}
-                onChange={() => setMilkTypes(prev => toggle(prev, value, true))}
-              />
-            ))}
-          </div>
-          {milkTypes.length > 1 && (
-            <textarea
-              value={milkNotes}
-              onChange={e => setMilkNotes(e.target.value)}
-              rows={2}
-              aria-label={t('bp.milkNotes')}
-              placeholder={t('bp.milkNotesPh')}
-              className="w-full mt-1.5 text-sm bg-cream rounded-xl px-4 py-3 resize-none text-app-text border-2 border-peachLight focus:border-peach outline-none transition-colors placeholder:text-textMuted/50"
-            />
-          )}
-        </div>
-        <div>
-          <p className="text-xs font-semibold text-textMuted mb-1 uppercase tracking-wide">{t('bp.feeding')}</p>
-          <div className="space-y-1.5">
-            {([['direct', t('bp.direct')], ['bottle', t('bp.bottle')]] as [FeedingWay, string][]).map(([value, label]) => (
-              <CheckRow
-                key={value}
-                label={label}
-                checked={feedingWays.includes(value)}
-                onChange={() => setFeedingWays(prev => toggle(prev, value))}
-              />
-            ))}
-            <textarea
-              value={feedingWayOther}
-              onChange={e => setFeedingWayOther(e.target.value)}
-              rows={2}
-              aria-label={t('bp.otherWay')}
-              placeholder={t('bp.otherWayPh')}
-              className="w-full text-sm bg-cream rounded-xl px-4 py-3 resize-none text-app-text border-2 border-peachLight focus:border-peach outline-none transition-colors placeholder:text-textMuted/50"
-            />
-          </div>
-          <p className="text-[11px] text-textMuted mt-1">{t('bp.feedingHint')}</p>
-        </div>
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-xs font-semibold text-textMuted uppercase tracking-wide">{t('bp.solids')}</p>
-            {solidsStartDate && (
-              <button onClick={() => setSolidsStartDate('')} className="text-[11px] font-semibold text-peachDark">
-                {t('bp.clear')}
-              </button>
-            )}
-          </div>
-          <DateInput value={solidsStartDate} min={birthDate} max={today} onChange={setSolidsStartDate} compact />
-          <p className="text-[11px] text-textMuted mt-1">
-            {t('bp.solidsHint')}
-          </p>
-        </div>
-        <div>
           <p className="text-xs font-semibold text-textMuted mb-1 uppercase tracking-wide">{t('bp.notes')}</p>
           <textarea
             value={notes}
@@ -220,7 +134,7 @@ export function BabyProfileScreen() {
             .map(entry => {
               const isEditing = editingKnowledgeId === entry.id;
               return (
-                <div key={entry.id} className="bg-white rounded-xl px-4 py-3 shadow-sm">
+                <div key={entry.id} className={`bg-white rounded-2xl px-4 py-3 ${cardShadow}`}>
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-xs font-semibold text-textMuted">
                       {formatDate(parseISO(entry.createdAt), 'dd MMM yyyy, HH:mm', lang)}

@@ -5,6 +5,7 @@ import { useBabyAge } from '../../hooks/useBabyAge';
 import { getLocalizedMomStage, getMomStages, getPainAreas } from '../../data/localizedCare';
 import { useLang } from '../../i18n/langContext';
 import type { UiKey } from '../../i18n/ui';
+import { cardShadow } from '../../components/shared/cardStyle';
 
 type Tab = 'pain' | 'exercise' | 'mind' | 'dad' | 'doctor';
 
@@ -70,7 +71,7 @@ export function MomScreen() {
       `}</style>
       {/* Hero */}
       <div className="px-4 pt-6">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-white to-peachLight/50 p-4 text-app-text shadow-sm">
+        <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-white to-peachLight/50 p-4 text-app-text ${cardShadow}`}>
           <div className="relative flex h-8 items-center justify-between">
             <div className="flex items-center gap-2">
               <p className="text-xs font-bold uppercase tracking-wider text-textMuted">
@@ -127,7 +128,7 @@ export function MomScreen() {
               key={key}
               onClick={() => setTab(key)}
               className={`flex flex-col items-center gap-1 py-2.5 rounded-2xl text-[11px] font-bold transition-all active:scale-95 ${
-                tab === key ? on : 'bg-white text-textMuted shadow-sm'
+                `${cardShadow} ${tab === key ? on : 'bg-white text-textMuted'}`
               }`}
             >
               <Icon size={18} strokeWidth={2.2} />
@@ -141,7 +142,7 @@ export function MomScreen() {
             {/* Body map: tap a dot */}
             <div className="relative mx-auto h-64 w-44">
               <svg viewBox="0 0 120 176" className="absolute inset-0 h-full w-full" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <g className="text-peachLight">
+                <g className="text-[#DDBFA8]">
                   <circle cx="60" cy="18" r="12" />
                   <path d="M60 30v10M38 46q22-10 44 0M38 46l-14 52M82 46l14 52M42 50l4 64h28l4-64M46 114l-4 56M74 114l4 56" />
                 </g>
@@ -174,7 +175,7 @@ export function MomScreen() {
             <h2 className="mt-2 text-center text-lg font-extrabold text-app-text">{area.label}</h2>
 
             {/* Steps as one timeline */}
-            <ol className="relative mt-4 rounded-3xl bg-white p-5 shadow-sm">
+            <ol className={`relative mt-4 rounded-2xl bg-white p-5 ${cardShadow}`}>
               <div className="absolute bottom-8 left-[2.15rem] top-8 w-0.5 bg-peachLight" />
               {area.fix.map((step, i) => (
                 <li key={step} className="relative flex gap-4 pb-4 last:pb-0">
@@ -185,7 +186,7 @@ export function MomScreen() {
                 </li>
               ))}
             </ol>
-            <div className="mt-3 flex gap-3 rounded-3xl bg-peachLight/40 p-4">
+            <div className={`mt-3 flex gap-3 rounded-2xl bg-orange-100 p-4 ${cardShadow}`}>
               <TriangleAlert size={20} className="shrink-0 text-peachDark" />
               <div>
                 <p className="text-sm font-extrabold text-app-text">{t('mom.seeDoctor')}</p>
@@ -197,18 +198,18 @@ export function MomScreen() {
 
         {tab === 'exercise' && (
           <>
-            <div className="mb-3 flex items-center justify-between rounded-2xl bg-peachLight/40 px-4 py-3">
+            <div className={`mb-3 flex items-center justify-between rounded-2xl bg-orange-100 px-4 py-3 ${cardShadow}`}>
               <p className="text-sm font-extrabold text-peachDark">{t('mom.todayMoves')}</p>
               <p className="text-xs font-bold text-peachDark">{t('mom.doneCount', { done: doneCount, total: stage.exercise.length })}</p>
             </div>
-            <ul className="space-y-2">
+            <ul className="space-y-4">
               {stage.exercise.map(item => {
                 const on = done.has(item);
                 return (
                   <li key={item}>
                     <button
                       onClick={() => toggleDone(item)}
-                      className={`flex w-full items-start gap-3 rounded-2xl p-3 text-left shadow-sm transition-all active:scale-[0.98] ${
+                      className={`flex w-full items-start gap-3 rounded-2xl p-3 text-left ${cardShadow} transition-all active:scale-[0.98] ${
                         on ? 'bg-peachLight' : 'bg-white'
                       }`}
                     >
@@ -229,9 +230,9 @@ export function MomScreen() {
         )}
 
         {tab === 'dad' && (
-          <ul className="space-y-2">
+          <ul className="space-y-4">
             {stage.dad.map(item => (
-              <li key={item} className="flex gap-3 rounded-2xl bg-white shadow-sm p-3">
+              <li key={item} className={`flex gap-3 rounded-2xl bg-white p-3 ${cardShadow}`}>
                 <Users size={16} className="mt-0.5 shrink-0 text-peachDark" />
                 <span className="text-sm text-app-text/80">{item}</span>
               </li>
@@ -240,9 +241,9 @@ export function MomScreen() {
         )}
 
         {tab === 'mind' && (
-          <ul className="space-y-2">
+          <ul className="space-y-4">
             {stage.mind.map(item => (
-              <li key={item} className="flex gap-3 rounded-2xl bg-white shadow-sm p-3">
+              <li key={item} className={`flex gap-3 rounded-2xl bg-white p-3 ${cardShadow}`}>
                 <Heart size={16} className="mt-0.5 shrink-0 text-peachDark" />
                 <span className="text-sm text-app-text/80">{item}</span>
               </li>
@@ -251,9 +252,9 @@ export function MomScreen() {
         )}
 
         {tab === 'doctor' && (
-          <ul className="space-y-2">
+          <ul className="space-y-4">
             {stage.doctor.map(item => (
-              <li key={item} className="flex gap-3 rounded-2xl bg-white p-3 shadow-sm">
+              <li key={item} className={`flex gap-3 rounded-2xl bg-white p-3 ${cardShadow}`}>
                 <TriangleAlert size={16} className="mt-0.5 shrink-0 text-peachDark" />
                 <span className="text-sm text-app-text/80">{item}</span>
               </li>

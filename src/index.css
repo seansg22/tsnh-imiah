@@ -9,17 +9,18 @@
 
 body {
   margin: 0;
-  background-color: #FFF8F2;
+  background-color: #F3E8DC; /* bottom color of pageBg */
   font-family: 'Nunito', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
+/* Mobile app: never show scrollbars (scrolling still works) */
+* {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  display: none;
 }
 
 @keyframes fadeIn {

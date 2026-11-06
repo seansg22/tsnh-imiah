@@ -69,9 +69,11 @@ function reducer(state: AppState, action: AppAction): AppState {
     case 'DELETE_KNOWLEDGE_ENTRY':
       return { ...state, knowledgeBase: state.knowledgeBase.filter(e => e.id !== action.payload) };
     case 'SET_PAGE':
-      return { ...state, currentPage: action.payload };
+      return action.payload === state.currentPage
+        ? state
+        : { ...state, currentPage: action.payload, previousPage: state.currentPage };
     case 'HYDRATE': // cloud merge rewrote localStorage; keep this device's navigation state
-      return { ...loadState(), selectedWeek: state.selectedWeek, currentPage: state.currentPage };
+      return { ...loadState(), selectedWeek: state.selectedWeek, currentPage: state.currentPage, previousPage: state.previousPage };
     default:
       return state;
   }

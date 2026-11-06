@@ -8,9 +8,10 @@ import { solidsOf } from './solids';
 import { formatDuration, groupByDay, sleepMinutes } from './sleep';
 import { milkTotals } from './milkTotal';
 import { dayMilksOf } from './dayMilks';
+import { foldTimes } from './foodForm';
 import type { AppState, MilkFields, SleepEntry } from '../types';
 
-export type AdviceKind = 'growth' | 'fooddiary' | 'milestones' | 'sleep';
+export type AdviceKind = 'growth' | 'fooddiary' | 'milestones' | 'sleep' | 'diary'; // diary = food and sleep together
 
 function babyInfo(state: AppState): string {
   const baby = state.babyProfile!;
@@ -68,10 +69,14 @@ export function sleepData(state: AppState): string {
 
 export function foodData(state: AppState): string {
   const rows = [...state.foodEntries].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 14).reverse().map(e => {
-    const milk = (m: MilkFields, when: string) => [
-      m.momTimes !== undefined && `${when} mom's milk ${m.momTimes}x${m.momMl !== undefined ? ` of ${m.momMl} ml` : ''}${m.momWays?.length ? ` (${m.momWays.map(w => (w === 'breast' ? 'breastfed' : 'from bottle')).join(' + ')})` : ''}`,
-      m.formulaTimes !== undefined && `${when} formula ${m.formulaTimes}x${m.formulaMl !== undefined ? ` of ${m.formulaMl} ml` : ''}`,
-    ];
+    const amount = (ml?: number, times?: number) => (ml !== undefined ? ` ${ml} ml` : ` ${times}x`);
+    const milk = (raw: MilkFields, when: string) => {
+      const m = foldTimes(raw);
+      return [
+        (m.momMl !== undefined || m.momTimes !== undefined) && `${when} mom's milk${amount(m.momMl, m.momTimes)}${m.momWays?.length ? ` (${m.momWays.map(w => (w === 'breast' ? 'breastfed' : 'from bottle')).join(' + ')})` : ''}`,
+        (m.formulaMl !== undefined || m.formulaTimes !== undefined) && `${when} formula${amount(m.formulaMl, m.formulaTimes)}`,
+      ];
+    };
     const parts = [
       ...dayMilksOf(e).flatMap(m => milk(m, 'daytime')),
       ...(e.night ? milk(e.night, 'night') : []),
@@ -105,15 +110,21 @@ const SLEEP_TRAINING_RULE = `
 
 // Hardcoded on purpose: the user cannot change what is asked.
 export function buildAdvicePrompt(kind: AdviceKind, state: AppState, lang: Lang) {
-  const topic = { growth: 'growth (weight, length, head circumference)', fooddiary: 'feeding and food diary', milestones: 'developmental milestones', sleep: 'sleep (naps and night sleep)' }[kind];
+  const topic = { growth: 'growth (weight, length, head circumference)', fooddiary: 'feeding and food diary', milestones: 'developmental milestones', sleep: 'sleep (naps and night sleep)', diary: 'feeding, food diary and sleep (naps and night sleep)' }[kind];
   const system = `You are a careful baby development assistant.
 Rules:
 - Always answer in ${lang === 'vi' ? 'Vietnamese, warm and a little cute but not over the top' : 'English'}.
 - Review the baby's ${topic} data and give: 1) the current situation, 2) next steps.
 - Use two short sections with bullet points, 2 to 4 bullets each, one concise sentence per bullet.
-- Be practical and age-aware. If something may need a doctor, say so gently.${kind === 'sleep' ? SLEEP_TRAINING_RULE : ''}`;
-  const data = { growth: growthData, fooddiary: foodData, milestones: milestoneData, sleep: sleepData }[kind](state);
-  const heading = { growth: 'Growth entries', fooddiary: 'Recent food diary (up to 14 days)', milestones: 'Milestones', sleep: 'Recent sleep diary (up to 14 days)' }[kind];
-  const user = `${babyInfo(state)}\n\n${heading}:\n${data}\n\nWhat is the current situation and what should we do next?`;
+- Be practical and age-aware. If something may need a doctor, say so gently.${kind === 'sleep' || kind === 'diary' ? SLEEP_TRAINING_RULE : ''}`;
+  const part = (heading: string, data: string) => `${heading}:\n${data}`;
+  const body = {
+    growth: () => part('Growth entries', growthData(state)),
+    fooddiary: () => part('Recent food diary (up to 14 days)', foodData(state)),
+    milestones: () => part('Milestones', milestoneData(state)),
+    sleep: () => part('Recent sleep diary (up to 14 days)', sleepData(state)),
+    diary: () => `${part('Recent food diary (up to 14 days)', foodData(state))}\n\n${part('Recent sleep diary (up to 14 days)', sleepData(state))}`,
+  }[kind]();
+  const user = `${babyInfo(state)}\n\n${body}\n\nWhat is the current situation and what should we do next?`;
   return { system, user };
 }

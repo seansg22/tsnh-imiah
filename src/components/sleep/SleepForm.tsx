@@ -10,6 +10,7 @@ import { FullPageForm } from '../shared/FullPageForm';
 import { useApp } from '../../context/appStateContext';
 import { SLEEP_WAYS, formatDuration, hasNightSleep, hhmm, sleepMinutes } from '../../lib/sleep';
 import { withValue } from '../../lib/foodForm';
+import { cardShadow } from '../shared/cardStyle';
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES = Array.from({ length: 12 }, (_, i) => i * 5);
@@ -18,7 +19,7 @@ const WAKE_UPS = Array.from({ length: 10 }, (_, i) => i + 1);
 const FEED_MIN = Array.from({ length: 18 }, (_, i) => (i + 1) * 5); // 5..90 min
 
 const labelCls = 'text-sm font-semibold text-textMuted block mb-1.5';
-const sectionCls = 'rounded-xl border border-peachLight bg-cream/50 p-3 space-y-3';
+const sectionCls = `rounded-2xl bg-white p-4 space-y-3 ${cardShadow}`;
 
 const DEFAULT_TIMES: Record<SleepKind, [string, string]> = { nap: ['13:00', '14:00'], night: ['20:00', '06:00'] };
 const part = (t: string) => t.split(':').map(Number) as [number, number];

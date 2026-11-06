@@ -81,11 +81,11 @@ export interface KnowledgeEntry {
 }
 
 export interface MilkFields {
-  momTimes?: number; // how many times mom fed directly
-  momMl?: number; // ml per mom's milk feed
+  momTimes?: number; // older entries only: the form no longer asks for it, see foldTimes()
+  momMl?: number; // ml of mom's milk in this record
   momWays?: ('breast' | 'bottle')[]; // how mom's milk was given: straight from the breast and/or from a bottle
-  formulaTimes?: number; // how many formula feeds
-  formulaMl?: number; // ml per formula feed
+  formulaTimes?: number; // older entries only, see foldTimes()
+  formulaMl?: number; // ml of formula in this record
 }
 
 export interface SolidMeal {
@@ -141,6 +141,7 @@ export interface AppState {
   sleepEntries: SleepEntry[];
   knowledgeBase: KnowledgeEntry[];
   currentPage: Page;
+  previousPage?: Page; // page shown before currentPage, used by back buttons
 }
 
 export type AppAction =

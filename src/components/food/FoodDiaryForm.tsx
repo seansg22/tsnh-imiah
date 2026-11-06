@@ -16,40 +16,30 @@ import { CheckBox } from '../shared/CheckBox';
 import { AutoTextarea } from '../shared/AutoTextarea';
 import { FullPageForm } from '../shared/FullPageForm';
 import { ALLERGIES, FOODS, PORTIONS, TOP_FOODS, MAIN_FOODS, SNACK_FOODS, POOP_COLORS, POOP_TEXTURES, type PoopColor } from './foodOptions';
+import { cardShadow, smallInputCls } from '../shared/cardStyle';
 
 const TIMES = Array.from({ length: 13 }, (_, i) => i + 1);
-const mlOf = (p: string) => (/^\d+ ml$/.test(p) ? parseInt(p, 10) : undefined);
 const ML_STEPS = Array.from({ length: 30 }, (_, i) => (i + 1) * 10); // 10..300 ml
 
-const inputCls = 'w-full border border-peachLight rounded-xl px-3 py-2 text-base text-app-text bg-cream focus:outline-none focus:border-peachDark';
-const sectionCls = 'rounded-xl border border-peachLight bg-cream/50 p-3 space-y-3';
+const sectionCls = `rounded-2xl bg-white p-4 space-y-3 ${cardShadow}`;
 const titleCls = 'flex items-center gap-1.5 text-sm font-extrabold text-app-text';
 const labelCls = 'text-sm font-semibold text-textMuted block mb-1.5';
 
-interface PairProps {
+interface AmountProps {
   children?: React.ReactNode;
   title?: string;
-  timesLabel: string; mlLabel: string;
-  times: number | undefined; onTimes: (v: number | undefined) => void; timesOptions: number[];
+  label: string;
   ml: number | undefined; onMl: (v: number | undefined) => void; mlOptions: number[];
 }
 
-// two wheels (times + ml) with short captions so labels never wrap on small screens
-function WheelPair({ children, title, timesLabel, mlLabel, times, onTimes, timesOptions, ml, onMl, mlOptions }: PairProps) {
+// one ml wheel, with an optional title and extra controls above it
+function AmountWheel({ children, title, label, ml, onMl, mlOptions }: AmountProps) {
   return (
     <div>
       {title && <p className="text-sm font-extrabold text-app-text mb-1.5">{title}</p>}
       {children}
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className={labelCls}>{timesLabel}</label>
-          <WheelPicker options={timesOptions} value={times} onChange={onTimes} />
-        </div>
-        <div>
-          <label className={labelCls}>{mlLabel}</label>
-          <WheelPicker options={mlOptions} value={ml} onChange={onMl} unit="ml" />
-        </div>
-      </div>
+      <label className={labelCls}>{label}</label>
+      <WheelPicker options={mlOptions} value={ml} onChange={onMl} unit="ml" />
     </div>
   );
 }
@@ -58,7 +48,6 @@ function MilkSection({ title, icon, value, onChange, onRemove }: { title: string
   const { t } = useLang();
   const set = (patch: MilkState) => onChange({ ...value, ...patch });
   const { kind } = value;
-  const timesLabel = t('fd.timesLabel');
   const mlLabel = t('fd.mlLabel');
   const total = milkSum(milkOut(value)); // only what the chosen kind will save
   return (
@@ -77,10 +66,9 @@ function MilkSection({ title, icon, value, onChange, onRemove }: { title: string
         ))}
       </div>
       {(kind === 'mom' || kind === 'mix') && (
-        <WheelPair
+        <AmountWheel
           title={kind === 'mix' ? t('fd.momMilk') : undefined}
-          timesLabel={timesLabel} mlLabel={mlLabel}
-          times={value.momTimes} onTimes={v => set({ momTimes: v })} timesOptions={withValue(TIMES, value.momTimes)}
+          label={mlLabel}
           ml={value.momMl} onMl={v => set({ momMl: v })} mlOptions={withValue(ML_STEPS, value.momMl)}
         >
           <label className={labelCls}>{t('fd.givenBy')}</label>
@@ -95,17 +83,16 @@ function MilkSection({ title, icon, value, onChange, onRemove }: { title: string
               );
             })}
           </div>
-        </WheelPair>
+        </AmountWheel>
       )}
       {(kind === 'formula' || kind === 'mix') && (
-        <WheelPair
+        <AmountWheel
           title={kind === 'mix' ? t('fd.formula') : undefined}
-          timesLabel={timesLabel} mlLabel={mlLabel}
-          times={value.formulaTimes} onTimes={v => set({ formulaTimes: v })} timesOptions={withValue(TIMES, value.formulaTimes)}
+          label={mlLabel}
           ml={value.formulaMl} onMl={v => set({ formulaMl: v })} mlOptions={withValue(ML_STEPS, value.formulaMl)}
         />
       )}
-      {total.ml > 0 && (
+      {kind === 'mix' && total.ml > 0 && ( // one wheel: the total is just that number
         <div className="flex items-baseline gap-2 text-sm">
           <span className="font-bold text-app-text">{t('fd.totalAll')}</span>
           <span className="font-extrabold text-peachDark">{total.ml}{total.complete ? '' : '+'} ml</span>
@@ -159,14 +146,14 @@ function SolidBlock({ title, value, onChange, onRemove }: BlockProps) {
           value={other}
           onChange={e => onChange({ ...value, other: e.target.value })}
           onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addOther(); } }}
-          className={inputCls}
+          className={smallInputCls}
         />
         <button
           type="button"
           aria-label={t('fd.phFood')}
           onClick={addOther}
           disabled={!other.trim()}
-          className="flex-shrink-0 px-3 rounded-xl bg-peach text-white disabled:opacity-40 transition-opacity"
+          className="flex-shrink-0 px-3 rounded-lg bg-peach text-white disabled:opacity-40 transition-opacity"
         >
           <Plus size={16} strokeWidth={2.5} />
         </button>
@@ -174,17 +161,13 @@ function SolidBlock({ title, value, onChange, onRemove }: BlockProps) {
       {hasFoods(value) && (
         <div>
           <label className={labelCls}>{t('fd.mlMealLabel')}</label>
-          {/* older entries saved a chip key or grams: keep it visible until a new ml is picked */}
-          {portion && mlOf(portion) === undefined && (
-            <p className="text-xs text-textMuted mb-1.5">
-              {t('fd.oldPortion', { p: (PORTIONS as readonly string[]).includes(portion) ? t(`fd.portion.${portion}` as UiKey) : portion })}
-            </p>
-          )}
-          <WheelPicker
-            options={withValue(ML_STEPS, mlOf(portion))}
-            value={mlOf(portion)}
-            onChange={v => onChange({ ...value, portion: v === undefined ? '' : `${v} ml` })}
-            unit="ml"
+          {/* free text; an older chip key shows as its label, and stays saved as is until typed over */}
+          <input
+            type="text"
+            placeholder={t('fd.phPortion')}
+            value={(PORTIONS as readonly string[]).includes(portion) ? t(`fd.portion.${portion}` as UiKey) : portion}
+            onChange={e => onChange({ ...value, portion: e.target.value })}
+            className={smallInputCls}
           />
         </div>
       )}
@@ -196,11 +179,10 @@ interface Props {
   onSave: (entry: FoodEntry) => void;
   onCancel: () => void;
   initialEntry?: FoodEntry;
-  prefill?: FoodEntry; // when adding: start from the most recent day's values (date stays today)
 }
 
-export function FoodDiaryForm({ onSave, onCancel, initialEntry, prefill }: Props) {
-  const seed = initialEntry ?? prefill;
+export function FoodDiaryForm({ onSave, onCancel, initialEntry }: Props) {
+  const seed = initialEntry; // adding starts blank
   const { t } = useLang();
   const today = new Date().toISOString().split('T')[0];
   const [date, setDate] = useState(initialEntry?.date ?? today);
@@ -214,13 +196,11 @@ export function FoodDiaryForm({ onSave, onCancel, initialEntry, prefill }: Props
     const m = seed ? solidsOf(seed).map(solidSeed) : [];
     return m.length ? m : [emptySolid()];
   });
-  // like reactions, poop is never prefilled from the last day
   const [pTimes, setPTimes] = useState<number | undefined>(initialEntry?.poop?.times);
   const [pColors, setPColors] = useState<string[]>(initialEntry?.poop?.colors ?? []);
   const [pTextures, setPTextures] = useState<string[]>(initialEntry?.poop?.textures ?? []);
   const hasPoop = pTimes !== undefined || pColors.length > 0 || pTextures.length > 0;
   const toggleIn = (set: (f: (p: string[]) => string[]) => void, v: string) => set(p => (p.includes(v) ? p.filter(x => x !== v) : [...p, v]));
-  // never prefilled from the last day: a reaction belongs to that day only
   // ready-made reactions are tags, anything typed before is one free text box
   const isTag = (a: string) => (ALLERGIES as readonly string[]).includes(a);
   const [allergy, setAllergy] = useState<string[]>((initialEntry?.allergy ?? []).filter(isTag));
@@ -280,16 +260,14 @@ export function FoodDiaryForm({ onSave, onCancel, initialEntry, prefill }: Props
             onRemove={days.length > 1 ? () => setDays(p => p.filter((_, j) => j !== i)) : undefined}
           />
         ))}
-        {Object.keys(milkOut(days[days.length - 1])).length > 0 && (
-          <button
-            type="button"
-            onClick={() => setDays(p => [...p, newMilkRecord()])}
-            className="flex items-center justify-center gap-1 w-full py-2 rounded-xl border border-dashed border-peach text-sm font-bold text-peachDark"
-          >
-            <Plus size={14} strokeWidth={2.5} />
-            {t('fd.addMilk')}
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setDays(p => [...p, newMilkRecord()])}
+          className="flex items-center justify-center gap-1 w-full py-2 rounded-xl border border-dashed border-peach bg-white/60 text-xs font-bold text-peachDark"
+        >
+          <Plus size={14} strokeWidth={2.5} />
+          {t('fd.addMilk')}
+        </button>
         {days.length > 1 && dayTotal.ml > 0 && (
           <div className="flex items-baseline gap-2 text-sm">
             <span className="font-bold text-app-text">{t('fd.dayTotal')}</span>
@@ -308,16 +286,14 @@ export function FoodDiaryForm({ onSave, onCancel, initialEntry, prefill }: Props
             />
           </section>
         ))}
-        {hasFoods(meals[meals.length - 1]) && (
-          <button
-            type="button"
-            onClick={() => setMeals(p => [...p, emptySolid()])}
-            className="flex items-center justify-center gap-1 w-full py-2 rounded-xl border border-dashed border-peach text-sm font-bold text-peachDark"
-          >
-            <Plus size={14} strokeWidth={2.5} />
-            {t('fd.addSolid')}
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => setMeals(p => [...p, emptySolid()])}
+          className="flex items-center justify-center gap-1 w-full py-2 rounded-xl border border-dashed border-peach bg-white/60 text-xs font-bold text-peachDark"
+        >
+          <Plus size={14} strokeWidth={2.5} />
+          {t('fd.addSolid')}
+        </button>
 
         <section className={sectionCls}>
           <h3 className={titleCls}><Baby size={16} strokeWidth={2.5} className="text-peachDark" />{t('fd.poop')}</h3>
@@ -355,7 +331,7 @@ export function FoodDiaryForm({ onSave, onCancel, initialEntry, prefill }: Props
               </Chip>
             ))}
           </div>
-          <AutoTextarea placeholder={t('fd.phAllergy')} value={otherAllergy} onChange={setOtherAllergy} className={inputCls} />
+          <AutoTextarea placeholder={t('fd.phAllergy')} value={otherAllergy} onChange={setOtherAllergy} className={smallInputCls} />
         </section>
 
     </FullPageForm>

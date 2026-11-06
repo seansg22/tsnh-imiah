@@ -4,9 +4,9 @@
 
 Never use emoji (e.g. 🎉) for icons in UI copy or anywhere else. Always use an SVG icon instead (e.g. from `lucide-react`, already used throughout the app).
 
-## After every code change
+## Before every commit
 
-Run lint fix then build to verify no errors before reporting done:
+Do not build after each code change. Only when committing, run lint fix then build and make sure there are no errors:
 
 ```
 pnpm lint --fix && pnpm build

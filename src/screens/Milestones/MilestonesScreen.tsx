@@ -82,8 +82,8 @@ export function MilestonesScreen() {
       </div>
 
       {/* Search + Category filter — sticky */}
-      <div ref={stickyRef} className="sticky top-0 z-10 bg-cream px-4 pb-3 pt-3">
-        <div className="flex items-center gap-2 bg-warm rounded-xl px-3 py-2">
+      <div ref={stickyRef} className="sticky top-0 z-10 bg-[#F8EADD] px-4 pb-3 pt-3">
+        <div className="flex items-center gap-2 bg-white shadow-sm rounded-xl px-3 py-2">
           <Search size={16} className="text-textMuted flex-shrink-0" />
           <input
             type="text"

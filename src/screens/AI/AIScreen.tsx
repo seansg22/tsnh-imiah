@@ -1,4 +1,5 @@
 import { getFeeding } from '../../constants/babyDefaults';
+import { pageBg } from '../../components/shared/cardStyle';
 import { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Check, Copy, Info, RefreshCw, Send, Sparkles, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -211,7 +212,7 @@ ${lang === 'vi'
   return (
     <div
       ref={containerRef}
-      className="fixed top-0 left-1/2 -translate-x-1/2 z-[100] flex flex-col bg-cream w-full max-w-[430px]"
+      className={`fixed top-0 left-1/2 -translate-x-1/2 z-[100] flex flex-col ${pageBg} w-full max-w-[430px]`}
       style={{ height: '100dvh' }}
     >
       {/* Header */}
@@ -221,7 +222,7 @@ ${lang === 'vi'
       >
         <button
           type="button"
-          onClick={() => dispatch({ type: 'SET_PAGE', payload: 'today' })}
+          onClick={() => dispatch({ type: 'SET_PAGE', payload: state.previousPage && state.previousPage !== 'onboarding' ? state.previousPage : 'today' })}
           className="flex h-9 w-9 items-center justify-center rounded-full bg-black/5 text-app-text"
           aria-label={t('ai.back')}
         >

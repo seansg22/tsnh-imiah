@@ -1,7 +1,9 @@
+import { Sparkles } from 'lucide-react';
+import { cardShadow } from '../shared/cardStyle';
 import { useLang, type LangState } from '../../i18n/langContext';
 
 interface AgeDisplayProps {
-  name: string;
+  summary: string;
   weeks: number;
   days: number;
   years: number;
@@ -34,7 +36,7 @@ function formatBrowseWeek(week: number, t: T): string {
   return t('wk.yrWk', { y: yrs, w: wks });
 }
 
-export function AgeDisplay({ name, weeks, days, years, remainingWeeks, selectedWeek, currentWeek }: AgeDisplayProps) {
+export function AgeDisplay({ summary, weeks, days, years, remainingWeeks, selectedWeek, currentWeek }: AgeDisplayProps) {
   const { t } = useLang();
   const isCurrent = selectedWeek === currentWeek;
   const ageText = isCurrent
@@ -42,11 +44,32 @@ export function AgeDisplay({ name, weeks, days, years, remainingWeeks, selectedW
     : formatBrowseWeek(selectedWeek, t);
 
   return (
-    <div className="text-center px-4 pb-2 mb-5">
-      <p className="text-2xl font-extrabold text-peachDark">{ageText}</p>
-      <p className="text-textMuted text-sm font-semibold mt-0.5">
-        {isCurrent ? t('age.ourLittle', { name }) : t('age.peeking')}
-      </p>
+    <div className="px-4 pb-2">
+      <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#FFAB76] to-[#E8875A] p-5 text-center ${cardShadow}`}>
+        <div className="absolute -top-8 -right-8 w-28 h-28 rounded-full bg-white/15" aria-hidden="true" />
+        <div className="absolute -bottom-10 -left-6 w-24 h-24 rounded-full bg-white/10" aria-hidden="true" />
+        <div className="relative">
+          <span className="inline-flex items-center gap-1 bg-white text-peachDark text-xs font-bold px-3 py-1 rounded-full">
+            <Sparkles size={12} strokeWidth={2.5} />
+            {isCurrent ? t('hero.thisWeek') : t('age.peeking')}
+          </span>
+          <p className="text-3xl font-extrabold text-white mt-3">{ageText}</p>
+          {/* 7 dots = days of the current week: done, today, to come */}
+          {isCurrent && (
+            <div className="flex justify-center gap-1.5 mt-3" aria-hidden="true">
+              {Array.from({ length: 7 }, (_, i) => (
+                <span
+                  key={i}
+                  className={`w-2.5 h-2.5 rounded-full ${
+                    i < days ? 'bg-white' : i === days ? 'ring-2 ring-white' : 'bg-white/35'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+          <p className="text-sm text-white leading-relaxed mt-4">{summary}</p>
+        </div>
+      </div>
     </div>
   );
 }

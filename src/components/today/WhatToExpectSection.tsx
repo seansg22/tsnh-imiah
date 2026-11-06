@@ -1,7 +1,8 @@
-import { Moon, Milk, Zap, Star } from 'lucide-react';
+import { Moon, Milk, Zap } from 'lucide-react';
 import type { Activity, WeekData } from '../../types';
 import { useLang, type Lang } from '../../i18n/langContext';
 import { weeklyData as enWeeklyData } from '../../data/weeklyDevelopment';
+import { cardShadow } from '../shared/cardStyle';
 
 // Playlist: "Your Baby's Development, Week by Week" — week 43 is missing in the playlist
 const WEEK_VIDEO_IDS: Record<number, string> = {
@@ -151,16 +152,9 @@ export function WhatToExpectSection({ week, data }: WhatToExpectSectionProps) {
   const { lang, t } = useLang();
   return (
     <div className="px-4 py-4">
-      <div className="flex items-center gap-2">
-        <Star size={16} strokeWidth={2} className="text-peachDark" />
-        <p className="text-base font-extrabold text-app-text">{t('wte.title', { week })}</p>
-      </div>
-
-      <div className="mt-4 space-y-4">
-          <p className="text-sm text-textMuted leading-relaxed">{data.summary}</p>
-
+      <div className="space-y-4">
           {WEEK_VIDEO_IDS[week] && (
-            <div className="rounded-2xl overflow-hidden shadow-sm aspect-video">
+            <div className={`rounded-2xl overflow-hidden aspect-video ${cardShadow}`}>
               <iframe
                 src={`https://www.youtube.com/embed/${WEEK_VIDEO_IDS[week]}`}
                 title={t('wte.videoTitle', { week })}
@@ -171,7 +165,7 @@ export function WhatToExpectSection({ week, data }: WhatToExpectSectionProps) {
             </div>
           )}
 
-          <div className="bg-white rounded-2xl p-4 shadow-sm">
+          <div className={`bg-white rounded-2xl p-4 ${cardShadow}`}>
             <div className="flex items-center gap-2 mb-2">
               <Moon size={16} strokeWidth={2} className="text-indigo-400" />
               <p className="font-bold text-app-text">{t('wte.sleep')}</p>
@@ -184,7 +178,7 @@ export function WhatToExpectSection({ week, data }: WhatToExpectSectionProps) {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-4 shadow-sm">
+          <div className={`bg-white rounded-2xl p-4 ${cardShadow}`}>
             <div className="flex items-center gap-2 mb-2">
               <Milk size={16} strokeWidth={2} className="text-blue-400" />
               <p className="font-bold text-app-text">{t('wte.feeding')}</p>
@@ -196,19 +190,19 @@ export function WhatToExpectSection({ week, data }: WhatToExpectSectionProps) {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-4 shadow-sm">
+          <div className={`bg-white rounded-2xl p-4 ${cardShadow}`}>
             <div className="flex items-center gap-2 mb-2">
               <Zap size={16} strokeWidth={2} className="text-peach" />
               <p className="font-bold text-app-text">{t('wte.activities')}</p>
             </div>
-            <div className="divide-y divide-peach/20">
+            <div className="space-y-4">
               {data.activities.map(a => (
                 <a
                   key={a.id}
                   href={getActivityYoutubeUrl(a, week, lang)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex gap-2.5 items-start py-2.5 first:pt-0 last:pb-0 active:opacity-70"
+                  className="flex gap-2.5 items-start active:opacity-70"
                   aria-label={t('wte.openYoutube', { title: a.title })}
                 >
                   <YouTubeLogo />

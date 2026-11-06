@@ -44,16 +44,16 @@ describe('splitDayMilks (saving)', () => {
 });
 
 describe('editing keeps every record', () => {
-  it('old entry: seed then save gives the same milk fields', () => {
+  it('old entry: seed then save keeps the same total (times x ml folds into ml)', () => {
     const old: FoodEntry = { ...base, momTimes: 3, momMl: 60, formulaTimes: 2 };
     const saved = splitDayMilks(dayMilksOf(old).map(milkSeed).map(milkOut));
-    expect(saved).toEqual({ momTimes: 3, momMl: 60, formulaTimes: 2 });
+    expect(saved).toEqual({ momMl: 180, formulaTimes: 2 });
   });
 
   it('several records survive seed then save', () => {
     const e: FoodEntry = { ...base, momTimes: 3, moreMilks: [{ formulaTimes: 1, formulaMl: 120 }] };
     const saved = splitDayMilks(dayMilksOf(e).map(milkSeed).map(milkOut));
-    expect(saved).toEqual({ momTimes: 3, moreMilks: [{ formulaTimes: 1, formulaMl: 120 }] });
+    expect(saved).toEqual({ momTimes: 3, moreMilks: [{ formulaMl: 120 }] });
   });
 });
 
@@ -62,15 +62,15 @@ describe('totals and AI data count every daytime record', () => {
 
   it('adds all daytime records, then night', () => {
     const t = milkTotals(e);
-    expect(t.day).toEqual({ ml: 240, feeds: 3, complete: true });
+    expect(t.day).toEqual({ ml: 240, complete: true });
     expect(t.night.ml).toBe(100);
     expect(t.all.ml).toBe(340);
   });
 
   it('is sent to the AI', () => {
     const out = foodData({ foodEntries: [e], sleepEntries: [] } as unknown as AppState);
-    expect(out).toContain("daytime mom's milk 2x of 60 ml");
-    expect(out).toContain('daytime formula 1x of 120 ml');
+    expect(out).toContain("daytime mom's milk 120 ml");
+    expect(out).toContain('daytime formula 120 ml');
     expect(out).toContain('total milk 340 ml');
   });
 });

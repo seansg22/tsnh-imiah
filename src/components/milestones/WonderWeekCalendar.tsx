@@ -2,18 +2,21 @@ import { useMemo, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   startOfMonth, endOfMonth, eachDayOfInterval,
-  isSameDay, isSameMonth, addDays, parseISO, format, getDay, differenceInWeeks,
+  isSameDay, isSameMonth, isBefore, startOfDay, addDays, parseISO, format, getDay, differenceInWeeks,
 } from 'date-fns';
 import type { Leap } from '../../data/wonderWeeks';
 import { getLeaps } from '../../data/localized';
 import { useApp } from '../../context/appStateContext';
 import { useLang } from '../../i18n/langContext';
 import { formatDate } from '../../i18n/date';
+import { cardShadow } from '../shared/cardStyle';
 
 interface Props {
   /** Estimated due date (ISO "YYYY-MM-DD") — Wonder Week leaps are counted from here, not birth date. */
   eddDate: string;
 }
+
+const cardShadowSm = 'shadow-[0_2px_6px_rgba(155,123,110,0.15)]';
 
 const LEAP_BG: Record<1 | 2 | 3, string> = {
   1: 'bg-red-100',
@@ -123,104 +126,98 @@ export function WonderWeekCalendar({ eddDate }: Props) {
 
       {/* Month nav */}
       <div className="flex items-center justify-between mb-3">
-        <button onClick={prevMonth} className="p-1.5 rounded-full hover:bg-peachLight text-textMuted">
-          <ChevronLeft size={18} />
+        <button onClick={prevMonth} aria-label="prev" className={`w-9 h-9 rounded-full bg-white flex items-center justify-center text-peachDark active:scale-90 transition-transform ${cardShadow}`}>
+          <ChevronLeft size={18} strokeWidth={2.5} />
         </button>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-app-text">{formatDate(viewMonth, 'MMMM yyyy', lang)}</span>
+        <div className="flex flex-col items-center gap-1">
+          <span className="text-lg font-extrabold leading-none text-app-text capitalize">{formatDate(viewMonth, 'MMMM yyyy', lang)}</span>
           {(viewMonth.getMonth() !== today.getMonth() || viewMonth.getFullYear() !== today.getFullYear()) && (
             <button
               onClick={() => goToMonth(new Date())}
-              className="text-[10px] font-semibold text-peachDark bg-peachLight/60 px-2 py-0.5 rounded-full hover:bg-peachLight"
+              className="text-[10px] font-bold text-white bg-peach px-2.5 py-0.5 rounded-full active:scale-95 transition-transform"
             >
               {t('cal.backToToday')}
             </button>
           )}
         </div>
-        <button onClick={nextMonth} className="p-1.5 rounded-full hover:bg-peachLight text-textMuted">
-          <ChevronRight size={18} />
+        <button onClick={nextMonth} aria-label="next" className={`w-9 h-9 rounded-full bg-white flex items-center justify-center text-peachDark active:scale-90 transition-transform ${cardShadow}`}>
+          <ChevronRight size={18} strokeWidth={2.5} />
         </button>
       </div>
 
-      {/* Weekday labels */}
-      <div className="grid grid-cols-7 mb-1">
-        {weekdays.map((d, i) => (
-          <div key={i} className="text-center text-[10px] font-bold text-textMuted py-1">{d}</div>
-        ))}
-      </div>
+      <div className="overflow-x-clip">
+        {/* Weekday labels: the weekend is peach */}
+        <div className="grid grid-cols-7 mb-1">
+          {weekdays.map((d, i) => (
+            <div key={i} className={`text-center text-[10px] font-extrabold py-1 ${i === 0 || i === 6 ? 'text-peachDark' : 'text-textMuted'}`}>{d}</div>
+          ))}
+        </div>
 
-      {/* Day grid */}
-      <div className="rounded-2xl overflow-hidden border border-peachLight">
-      <div
-        key={format(viewMonth, 'yyyy-MM')}
-        className={`grid grid-cols-7 gap-px bg-peachLight/40 touch-pan-y select-none ${
-          slideDir === 'next' ? 'month-in-next' : slideDir === 'prev' ? 'month-in-prev' : ''
-        }`}
-        onPointerDown={onGridPointerDown}
-        onPointerUp={onGridPointerUp}
-      >
-        {days.map((day, i) => {
-          if (!day) {
-            return <div key={`pad-${i}`} className="bg-cream min-h-[44px]" />;
-          }
-          const key = format(day, 'yyyy-MM-dd');
-          const isToday = isSameDay(day, today);
-          const isSelected = selectedDay ? isSameDay(day, selectedDay) : false;
-          const isCurrentMonth = isSameMonth(day, viewMonth);
-          const leap = leapDays.get(key);
-          const wonderWeek = differenceInWeeks(day, edd);
+        {/* Day grid: every day is a soft tile, leap days are pink (darker = stronger), past days fade, today is a peach tile */}
+        <div
+          key={format(viewMonth, 'yyyy-MM')}
+          className={`grid grid-cols-7 gap-1.5 py-2 touch-pan-y select-none ${
+            slideDir === 'next' ? 'month-in-next' : slideDir === 'prev' ? 'month-in-prev' : ''
+          }`}
+          onPointerDown={onGridPointerDown}
+          onPointerUp={onGridPointerUp}
+        >
+          {days.map((day, i) => {
+            if (!day) return <div key={`pad-${i}`} />;
+            const key = format(day, 'yyyy-MM-dd');
+            const isToday = isSameDay(day, today);
+            const isSelected = selectedDay ? isSameDay(day, selectedDay) : false;
+            const leap = leapDays.get(key);
+            const wonderWeek = differenceInWeeks(day, edd);
+            // the week label only shows when the wonder week changes (and on the 1st), not on every day
+            const prevDay = i > 0 ? days[i - 1] : null;
+            const showWeek = wonderWeek >= 0 && (!prevDay || differenceInWeeks(prevDay, edd) !== wonderWeek);
+            const isPast = !isToday && isBefore(day, startOfDay(today));
+            const tile = isToday
+              ? 'bg-peach text-white shadow-[0_6px_14px_rgba(232,135,90,0.5)]'
+              : leap ? `${LEAP_BG[leap.level]} text-red-900` : `bg-white text-app-text ${cardShadowSm}`;
 
-          return (
-            <button
-              key={key}
-              onClick={() => {
-                if (suppressClick.current) { suppressClick.current = false; return; }
-                setSelectedDay(day);
-              }}
-              className={`min-h-[44px] p-1 text-left flex flex-col gap-0.5 transition-colors ${
-                leap ? LEAP_BG[leap.level] : 'bg-cream'
-              } ${isSelected ? 'ring-2 ring-inset ring-peach' : ''} ${!isCurrentMonth ? 'opacity-40' : ''}`}
-            >
-              <div className="flex items-start justify-between w-full mb-0.5">
-                <span className={`text-xs font-bold leading-none w-5 h-5 flex items-center justify-center rounded-full flex-shrink-0 ${
-                  isToday ? 'bg-peach text-white' : 'text-app-text'
-                }`}>
-                  {format(day, 'd')}
-                </span>
-                {wonderWeek >= 0 && (
-                  <span className="text-[8px] text-textMuted leading-none font-medium">w{wonderWeek}</span>
-                )}
-              </div>
-            </button>
-          );
-        })}
-      </div>
+            return (
+              <button
+                key={key}
+                onClick={() => {
+                  if (suppressClick.current) { suppressClick.current = false; return; }
+                  setSelectedDay(day);
+                }}
+                className={`relative h-12 rounded-2xl flex flex-col items-center justify-center transition-transform active:scale-90 ${tile} ${isPast ? 'opacity-55' : ''} ${isSelected ? 'ring-2 ring-peachDark scale-105' : ''}`}
+              >
+                <span className="text-sm font-bold leading-none">{format(day, 'd')}</span>
+                <span className={`mt-1 h-2 text-[8px] leading-none font-semibold ${isToday ? 'text-white/80' : 'text-textMuted'}`}>{showWeek ? `w${wonderWeek}` : ''}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 px-1">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 px-1">
         <div className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-sm bg-red-100 border border-red-200" />
-          <span className="w-3 h-3 rounded-sm bg-red-200 border border-red-300" />
-          <span className="w-3 h-3 rounded-sm bg-red-300 border border-red-400" />
-          <span className="text-[10px] text-textMuted ml-0.5">{t('cal.legend')}</span>
+          <span className="w-4 h-2.5 rounded-full bg-red-100" />
+          <span className="w-4 h-2.5 rounded-full bg-red-200" />
+          <span className="w-4 h-2.5 rounded-full bg-red-300" />
+          <span className="text-[11px] text-textMuted ml-0.5">{t('cal.legend')}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-full bg-peach" />
-          <span className="text-[10px] text-textMuted">{t('cal.today')}</span>
+          <span className="text-[11px] text-textMuted">{t('cal.today')}</span>
         </div>
       </div>
 
       {/* Tapped day's wonder week panel — shown only if that day falls in a leap */}
       {selectedDay && selectedLeap && (
         <div className="mt-4">
-          <div className="bg-red-100 rounded-2xl px-4 py-4 mb-3">
+          <div className={`bg-red-100 rounded-2xl px-4 py-4 mb-4 ${cardShadow}`}>
             <p className="text-base font-bold text-red-800 mb-1.5">
               {t('cal.wonderWeek', { n: selectedLeap.number, name: selectedLeap.name })}
             </p>
             <p className="text-sm text-red-700 leading-relaxed">{selectedLeap.description}</p>
           </div>
-          <div className="bg-warm rounded-2xl px-4 py-4">
+          <div className={`bg-orange-100 rounded-2xl px-4 py-4 ${cardShadow}`}>
             <p className="text-base font-bold text-app-text mb-3">{t('cal.tips')}</p>
             <div className="flex flex-col gap-3">
               {selectedLeap.tips.map((tip, i) => (

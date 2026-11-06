@@ -11,9 +11,8 @@ import { SettingsScreen } from './screens/Settings/SettingsScreen';
 import { BabyProfileScreen } from './screens/BabyProfile/BabyProfileScreen';
 import { GrowthScreen } from './screens/Growth/GrowthScreen';
 import { AIScreen } from './screens/AI/AIScreen';
-import { FoodDiaryScreen } from './screens/FoodDiary/FoodDiaryScreen';
+import { DiaryScreen } from './screens/Diary/DiaryScreen';
 import { FoodScreen } from './screens/Food/FoodScreen';
-import { SleepScreen } from './screens/Sleep/SleepScreen';
 import { MomScreen } from './screens/Mom/MomScreen';
 import { OverdueBanner } from './components/banners/OverdueBanner';
 import { FoodDiaryBanner } from './components/banners/FoodDiaryBanner';
@@ -58,8 +57,8 @@ function AppContent() {
     food: <FoodScreen />,
     mom: <MomScreen />,
     growth: <GrowthScreen />,
-    fooddiary: <FoodDiaryScreen />,
-    sleep: <SleepScreen />,
+    fooddiary: <DiaryScreen />, // food diary and sleep diary share one page
+    sleep: <DiaryScreen />,
     settings: <SettingsScreen />,
     babyprofile: <BabyProfileScreen />,
     wonderweek: state.babyProfile ? (

@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { useLang } from '../../i18n/langContext';
 import type { GrowthEntry } from '../../types';
 import { DateInput } from '../shared/DateInput';
+import { cardShadow, smallInputCls } from '../shared/cardStyle';
 
 interface Props {
   onSave: (entry: GrowthEntry) => void;
@@ -33,7 +34,7 @@ export function GrowthEntryForm({ onSave, onCancel, initialEntry }: Props) {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-peachLight">
+    <div className={`bg-white rounded-2xl p-4 ${cardShadow}`}>
       <div className="flex items-center justify-between mb-3">
         <p className="font-bold text-app-text text-sm">
           {initialEntry ? t('growth.edit') : t('growth.add')}
@@ -59,7 +60,7 @@ export function GrowthEntryForm({ onSave, onCancel, initialEntry }: Props) {
               placeholder={t('growth.phWeight')}
               value={weight}
               onChange={e => setWeight(e.target.value)}
-              className="w-full border border-peachLight rounded-xl px-3 py-2 text-sm text-app-text bg-cream focus:outline-none focus:border-peachDark"
+              className={smallInputCls}
             />
           </div>
           <div>
@@ -71,7 +72,7 @@ export function GrowthEntryForm({ onSave, onCancel, initialEntry }: Props) {
               placeholder={t('growth.phLength')}
               value={length}
               onChange={e => setLength(e.target.value)}
-              className="w-full border border-peachLight rounded-xl px-3 py-2 text-sm text-app-text bg-cream focus:outline-none focus:border-peachDark"
+              className={smallInputCls}
             />
           </div>
           <div>
@@ -83,7 +84,7 @@ export function GrowthEntryForm({ onSave, onCancel, initialEntry }: Props) {
               placeholder={t('growth.phHead')}
               value={head}
               onChange={e => setHead(e.target.value)}
-              className="w-full border border-peachLight rounded-xl px-3 py-2 text-sm text-app-text bg-cream focus:outline-none focus:border-peachDark"
+              className={smallInputCls}
             />
           </div>
         </div>

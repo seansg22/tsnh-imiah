@@ -87,7 +87,7 @@ export function DateInput({ value, onChange, min, max, compact }: DateInputProps
     onChange(next);
   }
 
-  const sizeClass = compact ? 'py-2 text-sm !border !border-peachLight focus:!border-peachDark' : 'py-3 text-sm';
+  const sizeClass = compact ? 'py-1.5 text-sm !rounded-lg !border !border-peachLight focus:!border-peachDark' : 'py-3 text-sm';
   // compact: 3 equal columns, so it lines up with a grid-cols-3 row below it
   const wrapClass = compact ? 'grid grid-cols-3 gap-2 w-full' : 'flex gap-2 w-full';
   const dayMax = compact ? '' : 'max-w-[72px]';

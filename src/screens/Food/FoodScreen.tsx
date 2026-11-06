@@ -23,6 +23,10 @@ import { useLocalStorage } from '../../hooks/useLocalStorage';
 import type { BabyRecipe } from '../../data/foodByMonth';
 import { getCategoryLabel, getDifficultyLabel, getFoodData } from '../../data/localizedFood';
 import { chipCls } from '../../components/shared/chipStyle';
+import { cardShadow } from '../../components/shared/cardStyle';
+
+// soft badge colors, one per card in turn
+const FOOD_TINTS = ['bg-peachLight text-peachDark', 'bg-green-100 text-green-600', 'bg-amber-100 text-amber-600', 'bg-sky-100 text-sky-600'];
 
 function getBabyMonth(totalDays: number) {
   const month = Math.floor(totalDays / 30.4375);
@@ -71,7 +75,7 @@ function RecipeCard({
     <button
       type="button"
       onClick={onOpen}
-      className="flex w-full overflow-hidden rounded-xl bg-white text-left shadow-sm active:scale-[0.99] transition-transform"
+      className={`flex w-full overflow-hidden rounded-2xl bg-white text-left ${cardShadow} active:scale-[0.99] transition-transform`}
     >
       <div className="flex w-[72px] flex-shrink-0 flex-col items-center justify-center bg-peachLight/60 text-peachDark">
         <Soup size={20} strokeWidth={2.3} />
@@ -107,7 +111,7 @@ function RecipeDetail({
   const start = useRef<{ x: number; y: number } | null>(null);
   return (
     <div
-      className="fade-in min-h-screen bg-cream"
+      className="fade-in min-h-screen"
       style={{ touchAction: 'pan-y' }}
       onPointerDown={e => {
         start.current = { x: e.clientX, y: e.clientY };
@@ -121,7 +125,7 @@ function RecipeDetail({
         start.current = null;
       }}
     >
-      <div className="sticky top-0 z-20 flex h-14 items-center justify-between bg-cream/95 px-4 backdrop-blur-[2px]">
+      <div className="sticky top-0 z-20 flex h-14 items-center justify-between bg-[#F8EADD]/95 px-4 backdrop-blur-[2px]">
         <button type="button" onClick={onBack} className="flex h-9 w-9 items-center justify-center rounded-full bg-peachLight text-peachDark">
           <ArrowLeft size={20} strokeWidth={2.4} />
         </button>
@@ -137,7 +141,7 @@ function RecipeDetail({
           </div>
         </div>
 
-        <button type="button" onClick={onToggleMade} className="mt-3 flex w-full items-center gap-3 rounded-xl bg-white px-3 py-2.5 text-left shadow-sm">
+        <button type="button" onClick={onToggleMade} className={`mt-3 flex w-full items-center gap-3 rounded-2xl bg-white px-3 py-2.5 text-left ${cardShadow}`}>
           <span className={`flex h-7 w-7 items-center justify-center rounded-lg ${isMade ? 'bg-success' : 'bg-peachLight ring-2 ring-peach'}`}>
             {isMade && <Check size={19} strokeWidth={3} className="text-white" />}
           </span>
@@ -145,15 +149,15 @@ function RecipeDetail({
         </button>
 
         <div className="mt-3 grid grid-cols-3 gap-2">
-          <div className="rounded-xl bg-white p-2 text-center shadow-sm">
+          <div className={`rounded-2xl bg-white p-2 text-center ${cardShadow}`}>
             <Clock3 size={16} className="mx-auto text-peachDark" />
             <p className="mt-1 text-xs font-extrabold text-app-text">{recipe.prepTime}</p>
           </div>
-          <div className="rounded-xl bg-white p-2 text-center shadow-sm">
+          <div className={`rounded-2xl bg-white p-2 text-center ${cardShadow}`}>
             <Soup size={16} className="mx-auto text-peachDark" />
             <p className="mt-1 text-xs font-extrabold text-app-text">{t('food.monthPlus', { n: recipe.month })}</p>
           </div>
-          <div className="rounded-xl bg-white p-2 text-center shadow-sm">
+          <div className={`rounded-2xl bg-white p-2 text-center ${cardShadow}`}>
             <Utensils size={16} className="mx-auto text-peachDark" />
             <p className="mt-1 text-xs font-extrabold text-app-text">{getDifficultyLabel(recipe.difficulty, lang)}</p>
           </div>
@@ -181,7 +185,7 @@ function RecipeDetail({
         </a>
 
         {recipe.allergens.length > 0 && (
-          <div className="mt-3 rounded-xl bg-peachLight/40 p-3">
+          <div className={`mt-3 rounded-2xl bg-peachLight/40 p-3 ${cardShadow}`}>
             <p className="flex items-center gap-1.5 text-sm font-extrabold text-app-text">
               <AlertTriangle size={16} strokeWidth={2.4} className="flex-shrink-0 text-amber-600" />
               {t('food.allergens')}
@@ -190,7 +194,7 @@ function RecipeDetail({
           </div>
         )}
 
-        <section className="mt-3 rounded-xl bg-white p-3 shadow-sm">
+        <section className={`mt-3 rounded-2xl bg-white p-3 ${cardShadow}`}>
           <h2 className="text-base font-extrabold text-app-text">{t('food.ingredients')}</h2>
           <ul className="mt-2 list-disc space-y-1.5 pl-5 text-sm font-semibold leading-relaxed text-app-text">
             {recipe.ingredients.map(ingredient => (
@@ -199,7 +203,7 @@ function RecipeDetail({
           </ul>
         </section>
 
-        <section className="mt-3 rounded-xl bg-white p-3 shadow-sm">
+        <section className={`mt-3 rounded-2xl bg-white p-3 ${cardShadow}`}>
           <h2 className="text-base font-extrabold text-app-text">{t('food.directions')}</h2>
           <ol className="mt-2 list-decimal space-y-2 pl-5 text-sm font-semibold leading-relaxed text-app-text">
             {recipe.directions.map(step => (
@@ -209,7 +213,7 @@ function RecipeDetail({
         </section>
 
         {recipe.directions.some(step => /mash|blend|nghiền|xay/i.test(step)) && (
-          <section className="mt-3 rounded-xl bg-white p-3 shadow-sm">
+          <section className={`mt-3 rounded-2xl bg-white p-3 ${cardShadow}`}>
             <h2 className="text-base font-extrabold text-app-text">{t('food.mashTitle')}</h2>
             <ul className="mt-2 list-disc space-y-1.5 pl-5 text-sm font-semibold leading-relaxed text-app-text">
               {(['food.mashStep1', 'food.mashStep2', 'food.mashStep3', 'food.mashStep4'] as const).map(key => (
@@ -219,7 +223,7 @@ function RecipeDetail({
           </section>
         )}
 
-        <div className="mt-3 flex gap-3 rounded-xl bg-peachLight/50 p-3">
+        <div className={`mt-3 flex gap-3 rounded-2xl bg-peachLight/50 p-3 ${cardShadow}`}>
           <ShieldCheck size={19} strokeWidth={2.4} className="mt-0.5 flex-shrink-0 text-peachDark" />
           <p className="text-sm font-bold leading-relaxed text-app-text">{recipe.safetyNote}</p>
         </div>
@@ -299,7 +303,7 @@ export function FoodScreen() {
 
       {solidsBanner && (
         <div className="px-4 pb-2">
-          <div className="flex items-center justify-between gap-3 rounded-xl bg-peachLight/60 px-3 py-2.5 shadow-sm">
+          <div className={`flex items-center justify-between gap-3 rounded-2xl bg-peachLight/60 px-3 py-2.5 ${cardShadow}`}>
             <div className="min-w-0">
               <p className="text-sm font-extrabold leading-tight text-app-text">{solidsBanner.title}</p>
               <p className="mt-0.5 text-xs font-semibold leading-tight text-textMuted">{solidsBanner.body}</p>
@@ -312,8 +316,8 @@ export function FoodScreen() {
         </div>
       )}
 
-      <div className="sticky top-0 z-10 bg-cream px-4 pb-3 pt-3">
-        <div className="flex items-center gap-2 rounded-xl bg-warm px-3 py-2">
+      <div className="sticky top-0 z-10 bg-[#F8EADD] px-4 pb-3 pt-3">
+        <div className="flex items-center gap-2 rounded-xl bg-white shadow-sm px-3 py-2">
           <Search size={16} className="flex-shrink-0 text-textMuted" />
           <input
             type="text"
@@ -349,17 +353,21 @@ export function FoodScreen() {
           </div>
         </div>
         <p className="mt-1.5 text-sm font-medium leading-relaxed text-textMuted">{monthPlan.summary}</p>
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          {monthPlan.recommendations.map(food => (
-            <div key={food.name} className="min-w-0 rounded-xl bg-white p-2.5 shadow-sm">
-              <p className="line-clamp-1 text-sm font-extrabold leading-snug text-app-text">{food.vietnameseName}</p>
-              <p className="mt-0.5 line-clamp-1 text-xs font-bold leading-tight text-textMuted">{food.englishName}</p>
-              <p className="mt-1 text-xs font-semibold leading-snug text-textMuted">
-                <span className="font-extrabold text-app-text">{t('food.nutrition')}</span>
-                {food.nutrition}
-              </p>
+        <div className="mt-3 space-y-2">
+          {monthPlan.recommendations.map((food, i) => {
+            const name = lang === 'vi' ? food.vietnameseName : food.englishName;
+            return (
+            <div key={food.name} className={`flex min-w-0 items-start gap-2.5 rounded-2xl bg-white p-2.5 ${cardShadow}`}>
+              <div className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl text-base font-extrabold ${FOOD_TINTS[i % FOOD_TINTS.length]}`} aria-hidden="true">
+                {name.charAt(0)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-extrabold leading-snug text-app-text">{name}</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-textMuted">{food.nutrition}</p>
+              </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </section>
 
@@ -381,14 +389,14 @@ export function FoodScreen() {
           ))}
         </div>
         {filteredRecipes.length === 0 && (
-          <div className="mt-3 rounded-xl bg-white p-4 text-center shadow-sm">
+          <div className={`mt-3 rounded-2xl bg-white p-4 text-center ${cardShadow}`}>
             <p className="text-sm font-extrabold text-textMuted">{t('food.noMatch')}</p>
           </div>
         )}
       </section>
 
       <section className="px-4 pb-6 pt-4">
-        <div className="rounded-xl bg-peachLight/50 p-3">
+        <div className={`rounded-2xl bg-orange-100 p-3 ${cardShadow}`}>
           <div className="flex items-center gap-2">
             <ShieldCheck size={19} strokeWidth={2.4} className="text-peachDark" />
             <p className="text-base font-extrabold text-app-text">{t('food.safety')}</p>

@@ -4,6 +4,7 @@ export const sl = defineStrings(
   {
     'nav.sleep': 'Sleep Diary',
     'sl.title': 'Sleep Diary',
+    'diary.sleep': 'Sleep',
     'sl.subtitle': 'Note how baby slept',
     'sl.addNap': 'Add nap',
     'sl.addNight': 'Add night sleep',
@@ -38,6 +39,7 @@ export const sl = defineStrings(
   {
     'nav.sleep': 'Nhật ký ngủ',
     'sl.title': 'Nhật ký ngủ',
+    'diary.sleep': 'Giấc ngủ',
     'sl.subtitle': 'Ghi lại giấc ngủ của bé',
     'sl.addNap': 'Thêm giấc ngủ ngày',
     'sl.addNight': 'Thêm giấc ngủ đêm',

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Baby, Lightbulb } from 'lucide-react';
+import { cardShadow } from '../../components/shared/cardStyle';
 import { useLang } from '../../i18n/langContext';
 import { useApp } from '../../context/appStateContext';
 import { useBabyAge } from '../../hooks/useBabyAge';
@@ -48,7 +49,7 @@ export function TodayScreen() {
       </div>
 
       {/* Week strip */}
-      <div className="sticky top-0 z-10 bg-cream/90 backdrop-blur-[2px] pb-1">
+      <div className="sticky top-0 z-10 bg-[#F8EADD]/90 backdrop-blur-[2px] pb-1">
         <WeekStrip
           currentWeek={currentWeek}
           selectedWeek={selectedWeek}
@@ -58,7 +59,7 @@ export function TodayScreen() {
 
       {/* Age display */}
       <div className="pt-6">
-        <AgeDisplay name={state.babyProfile?.name ?? ''} weeks={weeks} days={days} years={years} remainingWeeks={remainingWeeks} selectedWeek={selectedWeek} currentWeek={currentWeek} />
+        <AgeDisplay summary={weekData.summary} weeks={weeks} days={days} years={years} remainingWeeks={remainingWeeks} selectedWeek={selectedWeek} currentWeek={currentWeek} />
       </div>
 
 
@@ -72,7 +73,9 @@ export function TodayScreen() {
             <Lightbulb size={16} strokeWidth={2} className="text-amber-500" />
             <p className="text-base font-extrabold text-app-text">{t('today.didYouKnow')}</p>
           </div>
-          <p className="text-sm text-textMuted leading-relaxed">{weekData.funFact}</p>
+          <div className={`bg-orange-100 rounded-2xl p-4 ${cardShadow}`}>
+            <p className="text-sm text-app-text leading-relaxed">{weekData.funFact}</p>
+          </div>
         </div>
       )}
 

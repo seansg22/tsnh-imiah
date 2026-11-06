@@ -64,9 +64,9 @@ export function WeekStrip({ currentWeek, selectedWeek, onSelectWeek }: WeekStrip
     <div>
       <div className="relative">
         {/* Left fade edge */}
-        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-r from-cream to-transparent" />
+        <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-r from-[#F8EADD] to-transparent" />
         {/* Right fade edge */}
-        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-l from-cream to-transparent" />
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 z-10 bg-gradient-to-l from-[#F8EADD] to-transparent" />
 
         <div
           ref={scrollRef}
@@ -89,8 +89,8 @@ export function WeekStrip({ currentWeek, selectedWeek, onSelectWeek }: WeekStrip
                   : i === currentWeek
                   ? 'bg-peachLight text-peachDark ring-2 ring-peach'
                   : i < currentWeek
-                  ? 'bg-warm/40 text-textMuted/50 line-through'
-                  : 'bg-warm text-textMuted'
+                  ? 'bg-white/50 text-textMuted/60 line-through'
+                  : 'bg-white text-textMuted shadow-sm' // small shadow only: the strip scrolls, so a big one would be cut off
               }`}
             >
               {weekLabel(i, t)}

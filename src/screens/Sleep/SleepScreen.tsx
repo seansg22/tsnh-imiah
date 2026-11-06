@@ -1,23 +1,24 @@
-import { useEffect, useRef, useState } from 'react';
-import { Plus, Pencil, Trash2, Sun, Moon, Sparkles } from 'lucide-react';
+import { Fragment, useEffect, useRef, useState } from 'react';
+import { Plus, Pencil, Trash2, Sun, Moon, Clock, ChevronDown } from 'lucide-react';
 import { parseISO, differenceInWeeks } from 'date-fns';
 import { useLang } from '../../i18n/langContext';
 import type { UiKey } from '../../i18n/ui';
 import { formatDate } from '../../i18n/date';
 import { useApp } from '../../context/appStateContext';
-import { AdviceModal } from '../../components/ai/AdviceModal';
 import { ConfirmDialog } from '../../components/shared/ConfirmDialog';
 import { SleepForm } from '../../components/sleep/SleepForm';
 import { formatDuration, groupByDay, sleepMinutes } from '../../lib/sleep';
 import type { SleepEntry, SleepKind } from '../../types';
+import { cardShadow } from '../../components/shared/cardStyle';
 
 export function SleepScreen() {
   const { t, lang } = useLang();
   const { state, dispatch } = useApp();
   // kind is set when adding; editing carries the entry (its kind decides the form)
   const [form, setForm] = useState<{ kind: SleepKind; entry?: SleepEntry } | null>(null);
-  const [showAdvice, setShowAdvice] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [openIds, setOpenIds] = useState<string[]>([]); // days showing the detail, the rest show the summary
+  const toggle = (id: string) => setOpenIds(ids => (ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]));
 
   const birthDate = state.babyProfile?.birthDate ?? '';
   const entries = state.sleepEntries;
@@ -67,25 +68,10 @@ export function SleepScreen() {
     );
   };
 
-  const addBtn = 'flex items-center justify-center gap-1.5 py-2 rounded-xl border-2 border-dashed border-peachLight text-peachDark text-xs font-bold hover:bg-peachLight/30 transition-colors';
+  const addBtn = 'flex items-center justify-center gap-1.5 py-2 rounded-xl border-2 border-dashed border-peach/60 bg-white/60 text-peachDark text-xs font-bold hover:bg-white transition-colors';
 
   return (
     <div className="fade-in">
-      <div className="px-4 pt-6 pb-4 flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-extrabold text-app-text">{t('sl.title')}</h1>
-          <p className="text-textMuted text-sm font-medium mt-1">{t('sl.subtitle')}</p>
-        </div>
-        <button
-          onClick={() => setShowAdvice(true)}
-          disabled={entries.length === 0}
-          aria-label={t('ai.advice.open')}
-          className="flex-shrink-0 disabled:opacity-40 disabled:shadow-none disabled:active:scale-100 flex items-center gap-1.5 h-9 pl-3 pr-3.5 rounded-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500 text-white text-xs font-extrabold shadow-md shadow-fuchsia-300/50 active:scale-95 transition-transform"
-        >
-          <Sparkles size={16} strokeWidth={2.5} />
-          {t('ai.title')}
-        </button>
-      </div>
 
       {/* naps and night sleep are added separately; a day can have many naps */}
       <div className="px-4 mb-4 grid grid-cols-2 gap-2">
@@ -115,31 +101,69 @@ export function SleepScreen() {
         {days.length === 0 && <p className="text-xs text-textMuted">{t('sl.empty')}</p>}
         {days.map(day => {
           const ageWeeks = birthDate ? differenceInWeeks(parseISO(day.date), parseISO(birthDate)) : null;
-          const block = (title: string, Icon: typeof Sun, list: SleepEntry[], minutes: number) =>
-            list.length > 0 && (
-              <div className="flex gap-2">
-                <Icon size={14} strokeWidth={2.5} className="text-peachDark mt-0.5 shrink-0" />
-                <div className="min-w-0 flex-1 space-y-0.5">
-                  <p className="text-xs font-bold text-peachDark">{title} · {formatDuration(minutes)}</p>
-                  {list.map(row)}
-                </div>
-              </div>
-            );
+          const isOpen = openIds.includes(day.date);
+          const wakeUps = day.nights.reduce((sum, e) => sum + (e.wakeUps ?? 0), 0);
+          const napShare = day.totalMin > 0 ? (day.napMin / day.totalMin) * 100 : 0;
+          const tile = 'min-w-0 rounded-2xl bg-peachLight/50 px-3 py-2';
+          const tileLabel = 'whitespace-nowrap text-[11px] font-semibold leading-none text-textMuted';
+          const tileValue = 'mt-1.5 text-lg font-extrabold leading-none text-app-text';
+          const tileSub = 'mt-1.5 truncate text-[11px] font-semibold leading-none text-textMuted';
+          // detail: one line per sleep, one icon per group, all rows share the same columns
+          const rows = [
+            ...day.naps.map((e, i) => ({ e, Icon: i === 0 ? Sun : null, tone: 'text-amber-500' })),
+            ...day.nights.map((e, i) => ({ e, Icon: i === 0 ? Moon : null, tone: 'text-indigo-400' })),
+          ];
           return (
-            <div key={day.date} data-sleep-day className="scroll-mt-4 bg-white rounded-xl px-4 py-2.5 shadow-sm">
-              <p className="text-sm font-bold text-app-text">
-                {formatDate(parseISO(day.date), 'dd MMM yyyy', lang)}
-                {ageWeeks !== null && ageWeeks >= 0 && (
-                  <span className="ml-2 text-xs font-medium text-textMuted">{t('growth.weekN', { n: ageWeeks })}</span>
+            <div key={day.date} data-sleep-day className={`scroll-mt-4 bg-white rounded-2xl px-4 py-3 ${cardShadow}`}>
+              <button type="button" onClick={() => toggle(day.date)} aria-expanded={isOpen} className="flex w-full items-center gap-1 text-left text-sm font-bold text-app-text">
+                <span className="truncate">
+                  {formatDate(parseISO(day.date), 'dd MMM yyyy', lang)}
+                  {ageWeeks !== null && ageWeeks >= 0 && (
+                    <span className="ml-2 text-xs font-medium text-textMuted">{t('growth.weekN', { n: ageWeeks })}</span>
+                  )}
+                </span>
+                <ChevronDown size={16} strokeWidth={2.5} className={`flex-shrink-0 text-textMuted transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* summary: total with a naps | night bar, then a tile each for naps and night (their icon colors are the bar legend) */}
+              <button type="button" onClick={() => toggle(day.date)} className="mt-2.5 flex w-full items-stretch gap-2 text-left transition-transform active:scale-[0.98]">
+                <div className={`${tile} flex-[1.4]`}>
+                  <p className="flex items-center gap-1 text-peachDark"><Clock size={14} strokeWidth={2.5} /><span className={`${tileLabel} truncate`}>{t('sl.total')}</span></p>
+                  <p className={tileValue}>{formatDuration(day.totalMin)}</p>
+                  {day.napMin > 0 && day.nightMin > 0 && (
+                    <div className="mt-2 flex h-1.5 overflow-hidden rounded-full bg-indigo-300">
+                      <div className="bg-amber-300" style={{ width: `${napShare}%` }} />
+                    </div>
+                  )}
+                </div>
+                {day.naps.length > 0 && (
+                  <div className={`${tile} flex-1`}>
+                    <p className="flex items-center gap-1 text-amber-500"><Sun size={14} strokeWidth={2.5} /><span className={tileLabel}>{t('sl.naps')}</span></p>
+                    <p className={tileValue}>{formatDuration(day.napMin)}</p>
+                    <p className={tileSub}>{day.naps.length}×</p>
+                  </div>
                 )}
-              </p>
-              <div className="mt-2 space-y-2.5">
-                {block(t('sl.naps'), Sun, day.naps, day.napMin)}
-                {block(t('sl.night'), Moon, day.nights, day.nightMin)}
-                <p className="flex items-baseline gap-2 text-sm">
-                  <span className="font-bold text-app-text">{t('sl.total')}</span>
-                  <span className="font-extrabold text-peachDark">{formatDuration(day.totalMin)}</span>
-                </p>
+                {day.nights.length > 0 && (
+                  <div className={`${tile} flex-1`}>
+                    <p className="flex items-center gap-1 text-indigo-400"><Moon size={14} strokeWidth={2.5} /><span className={tileLabel}>{t('sl.night')}</span></p>
+                    <p className={tileValue}>{formatDuration(day.nightMin)}</p>
+                    {wakeUps > 0 && <p className={tileSub}>{t('sl.wakeN', { n: wakeUps })}</p>}
+                  </div>
+                )}
+              </button>
+
+              {/* the detail slides open: a grid row going from 0fr to 1fr animates the height */}
+              <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`} aria-hidden={!isOpen}>
+                <div className="overflow-hidden">
+                  <div className="mt-2.5 grid grid-cols-[14px_minmax(0,1fr)] items-start gap-x-2 gap-y-1.5">
+                    {rows.map(({ e, Icon, tone }) => (
+                      <Fragment key={e.id}>
+                        <span>{Icon && <Icon size={14} strokeWidth={2.5} className={`mt-0.5 ${tone}`} />}</span>
+                        {row(e)}
+                      </Fragment>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           );
@@ -153,7 +177,6 @@ export function SleepScreen() {
           onCancel={() => setDeleteId(null)}
         />
       )}
-      {showAdvice && <AdviceModal kind="sleep" onClose={() => setShowAdvice(false)} />}
     </div>
   );
 }

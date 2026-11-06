@@ -64,7 +64,7 @@ export function WheelPicker({ options, value, onChange, unit, required }: Props)
           placeholder="–"
           onChange={e => handleType(e.target.value)}
           onBlur={() => setTyping(null)}
-          className="w-full min-w-0 bg-transparent py-1 text-center text-base font-bold tabular-nums outline-none placeholder:text-textMuted/40"
+          className="w-full min-w-0 bg-transparent py-1.5 text-center text-sm font-bold tabular-nums outline-none placeholder:text-textMuted/40"
           style={{ color: '#3D2B1F' }}
         />
         {unit && <span className="text-xs shrink-0" style={{ color: '#9B7B6E' }}>{unit}</span>}

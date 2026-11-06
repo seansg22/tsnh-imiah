@@ -1,4 +1,4 @@
-import { Home, Star, Sparkles, TrendingUp, Settings, Baby, CalendarDays, Compass, UserRound, Utensils, Milk, Moon, Heart } from 'lucide-react';
+import { Home, Star, Sparkles, TrendingUp, Settings, Baby, CalendarDays, Compass, UserRound, Utensils, Milk, Heart } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useApp } from '../../context/appStateContext';
 import { useLang } from '../../i18n/langContext';
@@ -12,16 +12,21 @@ const homeOptions: { page: Page; icon: React.ElementType; label: UiKey }[] = [
   { page: 'today',    icon: Home,         label: 'nav.today'    },
   { page: 'insights', icon: Sparkles,     label: 'nav.insights' },
   { page: 'food',     icon: Utensils,     label: 'nav.food'     },
+  { page: 'mom',      icon: Heart,        label: 'nav.mom'      },
 ];
 
 const progressOptions: { page: Page; icon: React.ElementType; label: UiKey }[] = [
   { page: 'babyprofile', icon: UserRound,  label: 'nav.babyProfile' },
   { page: 'milestones',  icon: Star,       label: 'nav.milestones'   },
   { page: 'growth',      icon: TrendingUp, label: 'nav.growth'       },
-  { page: 'fooddiary',  icon: Milk,       label: 'nav.foodDiary'    },
-  { page: 'sleep',      icon: Moon,       label: 'nav.sleep'        },
+  { page: 'fooddiary',  icon: Milk,       label: 'nav.diary'        }, // also covers 'sleep'
   { page: 'wonderweek',  icon: CalendarDays, label: 'nav.wonderWeek' },
 ];
+
+const tab = (active: boolean) =>
+  `w-full h-full flex flex-col items-center justify-center gap-0.5 px-3 rounded-full text-[11px] leading-tight font-semibold transition-colors ${
+    active ? 'text-peachDark bg-peachLight/60' : 'text-textMuted'
+  }`;
 
 export function BottomNav() {
   const { state, dispatch } = useApp();
@@ -32,7 +37,7 @@ export function BottomNav() {
   const homeMenuRef = useRef<HTMLDivElement>(null);
 
   const isProgressActive = state.currentPage === 'milestones' || state.currentPage === 'growth' || state.currentPage === 'fooddiary' || state.currentPage === 'sleep' || state.currentPage === 'babyprofile' || state.currentPage === 'wonderweek';
-  const isHomeActive = state.currentPage === 'today' || state.currentPage === 'insights' || state.currentPage === 'food';
+  const isHomeActive = state.currentPage === 'today' || state.currentPage === 'insights' || state.currentPage === 'food' || state.currentPage === 'mom';
   const { currentWeek } = useBabyAge(state.babyProfile?.birthDate ?? null);
   const achieved = new Set(state.achievedMilestones);
   const skipped = new Set(state.skippedMilestones);
@@ -69,17 +74,6 @@ export function BottomNav() {
   return (
     <>
     <style>{`
-      @keyframes ai-spin {
-        from { transform: translate(-50%, -50%) rotate(0deg); }
-        to   { transform: translate(-50%, -50%) rotate(360deg); }
-      }
-      .ai-spin-gradient {
-        position: absolute;
-        top: 50%; left: 50%;
-        width: 220%; height: 220%;
-        background: conic-gradient(from 0deg, #6366f1, #8b5cf6, #a78bfa, #7dd3fc, #818cf8, #6366f1);
-        animation: ai-spin 15s linear infinite;
-      }
       @keyframes popup-appear {
         from { opacity: 0; transform: translateY(8px) scale(0.95); }
         to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -90,17 +84,25 @@ export function BottomNav() {
       }
     `}</style>
     <div
-      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-50 bg-white"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-50 px-2"
+      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
     >
-      <div className="relative bg-white">
+      {/* blur the page content under and around the bar, fading out upward */}
+      <div
+        className="absolute inset-x-0 -top-3 bottom-0 pointer-events-none backdrop-blur-[3px]"
+        style={{
+          WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 45%)',
+          maskImage: 'linear-gradient(to bottom, transparent, black 45%)',
+        }}
+      />
+      <div className="relative">
         {/* Nav bar */}
-        <div className="relative bg-white border-t border-peachLight flex items-center h-16">
+        <div className="relative bg-cream border border-peachLight rounded-full shadow-[0_12px_32px_rgba(120,70,40,0.32)] grid grid-cols-4 h-14 p-1.5">
           {/* Left: Home + Progress */}
-          <div className="flex flex-1 justify-around relative z-20">
-            <div ref={homeMenuRef} className="relative flex flex-col items-center">
+          <div className="contents">
+            <div ref={homeMenuRef} className="relative h-full">
               {showHome && (
-                <div className="popup-appear absolute bottom-full mb-2 left-0 flex flex-col items-center gap-1 bg-white border border-peachLight rounded-2xl shadow-lg py-2 px-1 min-w-[140px]">
+                <div className="popup-appear absolute bottom-full mb-4 left-0 flex flex-col items-center gap-1 bg-white border border-peachLight rounded-2xl shadow-lg py-2 px-1 min-w-[140px]">
                   {homeOptions.map(({ page, icon: Icon, label }) => {
                     const isActive = state.currentPage === page;
                     return (
@@ -120,20 +122,18 @@ export function BottomNav() {
               )}
               <button
                 onClick={() => setShowHome(v => !v)}
-                className={`flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-semibold transition-colors ${
-                  isHomeActive ? 'text-peachDark' : 'text-textMuted'
-                }`}
+                className={tab(isHomeActive)}
               >
-                <Compass size={22} strokeWidth={isHomeActive ? 2.5 : 1.8} />
+                <Compass size={20} strokeWidth={isHomeActive ? 2.5 : 1.8} />
                 <span>{t('nav.explore')}</span>
               </button>
             </div>
 
-            <div ref={menuRef} className="relative flex flex-col items-center">
+            <div ref={menuRef} className="relative h-full">
               {showProgress && (
-                <div className="popup-appear absolute bottom-full mb-2 -right-6 flex flex-col items-center gap-1 bg-white border border-peachLight rounded-2xl shadow-lg py-2 px-1 min-w-[140px]">
+                <div className="popup-appear absolute bottom-full mb-4 left-0 flex flex-col items-center gap-1 bg-white border border-peachLight rounded-2xl shadow-lg py-2 px-1 min-w-[140px]">
                   {progressOptions.map(({ page, icon: Icon, label }) => {
-                    const isActive = state.currentPage === page;
+                    const isActive = state.currentPage === page || (page === 'fooddiary' && state.currentPage === 'sleep');
                     return (
                       <button
                         key={page}
@@ -156,58 +156,33 @@ export function BottomNav() {
               )}
               <button
                 onClick={() => setShowProgress(v => !v)}
-                className={`flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-semibold transition-colors ${
-                  isProgressActive ? 'text-peachDark' : 'text-textMuted'
-                }`}
+                className={tab(isProgressActive)}
               >
-                <div className="relative">
-                  <Baby size={22} strokeWidth={isProgressActive ? 2.5 : 1.8} />
-                  {unfinishedMilestones > 0 && (
-                    <span className="absolute -top-2 -right-4 min-w-[18px] h-[18px] px-1 bg-peachDark text-white text-xs font-bold rounded-full flex items-center justify-center leading-none">
-                      {unfinishedMilestones > 99 ? '99+' : unfinishedMilestones}
-                    </span>
-                  )}
-                </div>
-                <span>{t('nav.baby')}</span>
+                <Baby size={20} strokeWidth={isProgressActive ? 2.5 : 1.8} />
+                <span className="max-w-full truncate">{state.babyProfile?.name?.trim() || t('nav.baby')}</span>
               </button>
             </div>
           </div>
 
-          {/* Center spacer for the button */}
-          <div className="w-16 flex-shrink-0" />
-
           {/* Right tabs: Mom + Settings */}
-          <div className="flex flex-1 justify-around relative z-20">
+          <div className="contents">
             <button
-              onClick={() => navigate('mom')}
-              className={`flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-semibold transition-colors ${
-                state.currentPage === 'mom' ? 'text-peachDark' : 'text-textMuted'
-              }`}
+              onClick={() => navigate('ai')}
+              className={tab(state.currentPage === 'ai')}
             >
-              <Heart size={22} strokeWidth={state.currentPage === 'mom' ? 2.5 : 1.8} />
-              <span>{t('nav.mom')}</span>
+              <Sparkles size={20} strokeWidth={state.currentPage === 'ai' ? 2.5 : 1.8} />
+              <span>{t('nav.ai')}</span>
             </button>
 
             <button
               onClick={() => navigate('settings')}
-              className={`flex flex-col items-center gap-0.5 py-2 px-3 text-xs font-semibold transition-colors ${
-                state.currentPage === 'settings' ? 'text-peachDark' : 'text-textMuted'
-              }`}
+              className={tab(state.currentPage === 'settings')}
             >
-              <Settings size={22} strokeWidth={state.currentPage === 'settings' ? 2.5 : 1.8} />
+              <Settings size={20} strokeWidth={state.currentPage === 'settings' ? 2.5 : 1.8} />
               <span>{t('nav.settings')}</span>
             </button>
           </div>
         </div>
-
-        {/* Center AI circle button — floats above the notch */}
-        <button
-          onClick={() => navigate('ai')}
-          className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[35%] w-16 h-16 rounded-full flex items-center justify-center shadow-lg z-30 overflow-hidden"
-        >
-          <div className="ai-spin-gradient" />
-          <Sparkles size={28} strokeWidth={2.2} className="text-white relative z-10" />
-        </button>
       </div>
     </div>
     </>

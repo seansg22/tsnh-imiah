@@ -9,6 +9,7 @@ describe('food diary sent to the AI', () => {
     const out = foodData(stateWith([{ id: 'a', date: '2026-10-01', momTimes: 5, formulaTimes: 2, formulaMl: 90, foods: ['fish'], portion: 'half' }]));
     expect(out).toContain('2026-10-01');
     expect(out).toContain("daytime mom's milk 5x");
+    expect(out).toContain('daytime formula 180 ml');
     expect(out).toContain('solid 1: fish (half)');
     expect(out).toContain('total milk 180+ ml'); // mom feeds have no ml, so it is a minimum
   });
@@ -20,7 +21,7 @@ describe('food diary sent to the AI', () => {
       solids: [{ foods: ['banana'], portion: '40 ml', snack: true }],
       poop: { times: 2, colors: ['yellow'], textures: ['soft'] },
     }]));
-    expect(out).toContain("night mom's milk 1x of 100 ml");
+    expect(out).toContain("night mom's milk 100 ml");
     expect(out).toContain('breastfed + from bottle');
     expect(out).toContain('snack 1: banana (40 ml)');
     expect(out).toContain('poop 2x, yellow, soft');
@@ -58,5 +59,21 @@ describe('advice prompt for the sleep diary', () => {
 
   it('sends the sleep diary as data', () => {
     expect(buildAdvicePrompt('sleep', state, 'en').user).toContain('Recent sleep diary');
+  });
+});
+
+describe('advice prompt for the whole diary', () => {
+  const state = {
+    babyProfile: { name: 'Mi', birthDate: '2026-04-16', gender: 'girl', feedingMethod: 'breast' },
+    foodEntries: [{ id: 'a', date: '2026-11-01', momMl: 100 }],
+    sleepEntries: [{ id: 'n', date: '2026-11-01', kind: 'nap', start: '13:00', end: '14:00' }],
+  } as unknown as AppState;
+
+  it('sends food and sleep together, with the sleep training section', () => {
+    const p = buildAdvicePrompt('diary', state, 'en');
+    expect(p.user).toContain('Recent food diary');
+    expect(p.user).toContain('Recent sleep diary');
+    expect(p.user).toContain("mom's milk 100 ml");
+    expect(p.system).toContain('Sleep training');
   });
 });

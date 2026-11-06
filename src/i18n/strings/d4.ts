@@ -2,7 +2,6 @@ import { defineStrings } from '../defineStrings';
 
 export const d4 = defineStrings(
   {
-    'wte.title': 'What to expect at week {week}',
     'wte.videoTitle': 'Week {week} baby development',
     'wte.sleep': 'Sleep',
     'wte.sleepTotal': 'Total:',
@@ -17,7 +16,6 @@ export const d4 = defineStrings(
     'wte.openYoutube': 'Open YouTube videos for {title}',
   },
   {
-    'wte.title': 'Điều mẹ có thể mong đợi ở tuần {week}',
     'wte.videoTitle': 'Sự phát triển của bé ở tuần {week}',
     'wte.sleep': 'Giấc ngủ',
     'wte.sleepTotal': 'Tổng cộng:',

@@ -1,21 +1,19 @@
 import type { FoodEntry, MilkFields } from '../types';
 import { dayMilksOf } from './dayMilks';
+import { foldTimes } from './foodForm';
 
 export interface MilkTotal {
-  ml: number; // sum of times x ml over mom's milk and formula
-  feeds: number; // all feeds
-  complete: boolean; // false when some feeds have no ml, so ml is a minimum
+  ml: number; // sum of ml over mom's milk and formula (old entries: times x ml)
+  complete: boolean; // false when an old entry has times but no ml, so ml is a minimum
 }
 
 function sum(parts: MilkFields[]): MilkTotal {
-  const total: MilkTotal = { ml: 0, feeds: 0, complete: true };
+  const total: MilkTotal = { ml: 0, complete: true };
   const add = (times?: number, ml?: number) => {
-    if (times === undefined) return;
-    total.feeds += times;
-    if (ml === undefined) total.complete = false;
-    else total.ml += times * ml;
+    if (ml !== undefined) total.ml += ml;
+    else if (times !== undefined) total.complete = false;
   };
-  for (const m of parts) {
+  for (const m of parts.map(foldTimes)) {
     add(m.momTimes, m.momMl);
     add(m.formulaTimes, m.formulaMl);
   }

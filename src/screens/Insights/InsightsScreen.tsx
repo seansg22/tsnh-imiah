@@ -6,6 +6,7 @@ import { useApp } from '../../context/appStateContext';
 import { getWeekData, getInsightExplanationFor } from '../../data/localized';
 import { definedWeeks } from '../../data/weeklyDevelopment';
 import { useBabyAge } from '../../hooks/useBabyAge';
+import { cardShadow } from '../../components/shared/cardStyle';
 
 type Category = 'motor' | 'cognitive' | 'social' | 'sensory';
 
@@ -94,13 +95,13 @@ export function InsightsScreen() {
       </div>
 
       {/* Summary */}
-      <div className="mx-4 bg-peachLight rounded-2xl p-4">
+      <div className={`mx-4 mb-4 bg-orange-100 rounded-2xl p-4 ${cardShadow}`}>
         <p className="font-bold text-app-text text-sm mb-1">{data.title}</p>
         <p className="text-textMuted text-xs leading-relaxed">{data.summary}</p>
       </div>
 
       {/* Category tabs */}
-      <div ref={stickyRef} className="sticky top-0 z-10 bg-cream flex gap-2 px-4 py-3 overflow-x-auto no-scrollbar overscroll-x-contain"
+      <div ref={stickyRef} className="sticky top-0 z-10 flex gap-2 px-4 pb-3 overflow-x-auto no-scrollbar overscroll-x-contain"
         onWheel={e => { if (e.deltaY) e.currentTarget.scrollLeft += e.deltaY; }}
       >
         {categoryConfig.map(({ key, label, Icon, color }) => (
@@ -108,7 +109,7 @@ export function InsightsScreen() {
             key={key}
             onClick={() => handleCategoryChange(key)}
             className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold transition-all ${
-              activeCategory === key ? color : 'bg-warm text-textMuted'
+              `shadow-sm ${activeCategory === key ? color : 'bg-white text-textMuted'}`
             }`}
           >
             <Icon size={14} strokeWidth={2} />
@@ -120,7 +121,7 @@ export function InsightsScreen() {
       {/* Detail cards */}
       <div ref={contentRef} className="px-4 space-y-3">
         {items.map((item, i) => (
-          <div key={i} className="flex gap-3 items-start bg-white rounded-xl p-3 shadow-sm">
+          <div key={i} className={`flex gap-3 items-start bg-white rounded-2xl p-3 ${cardShadow}`}>
             <span className="w-1.5 h-1.5 rounded-full bg-peach mt-2 flex-shrink-0" />
             <div>
               <p className="text-sm text-app-text font-bold leading-snug">{item}</p>

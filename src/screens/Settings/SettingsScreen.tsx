@@ -4,6 +4,7 @@ import { ChevronRight, CloudDownload, CloudUpload, LogOut } from 'lucide-react';
 import { useLang } from '../../i18n/langContext';
 import { formatDateTime } from '../../i18n/date';
 import { useApp } from '../../context/appStateContext';
+import { cardShadow } from '../../components/shared/cardStyle';
 import { fetchCloud, getAccount, getLastPush, isAuto, login, logout, pull, push, register, sameAsLocal, setAuto, sync } from '../../lib/cloudSync';
 
 type UpdateStatus = 'idle' | 'checking' | 'updated' | 'error';
@@ -124,7 +125,7 @@ export function SettingsScreen() {
     <div className="fade-in px-4 pt-6 pb-8">
       <h1 className="text-2xl font-extrabold text-app-text mb-6">{t('settings.title')}</h1>
 
-      <div className="bg-white rounded-2xl p-4 shadow-sm mb-4 space-y-3">
+      <div className={`bg-white rounded-2xl p-4 ${cardShadow} mb-4 space-y-3`}>
         <div>
           <p className="font-bold text-app-text">{t('settings.profile')}</p>
           <p className="text-xs text-textMuted mt-0.5">{t('settings.profileHint')}</p>
@@ -138,7 +139,7 @@ export function SettingsScreen() {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl p-4 shadow-sm mb-4 space-y-3">
+      <div className={`bg-white rounded-2xl p-4 ${cardShadow} mb-4 space-y-3`}>
         <div>
           <p className="font-bold text-app-text">{t('settings.language')}</p>
           <p className="text-xs text-textMuted mt-0.5">{t('settings.languageHint')}</p>
@@ -158,7 +159,7 @@ export function SettingsScreen() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl p-5 shadow-sm mb-4">
+      <div className={`bg-white rounded-2xl p-5 ${cardShadow} mb-4`}>
         <p className="font-bold text-app-text mb-1">{t('settings.cloud')}</p>
         {account ? (
           <div className="space-y-3">
@@ -249,7 +250,7 @@ export function SettingsScreen() {
         )}
       </div>
 
-      <div className="bg-white rounded-2xl p-5 shadow-sm mb-4">
+      <div className={`bg-white rounded-2xl p-5 ${cardShadow} mb-4`}>
         <div className="flex items-center justify-between mb-1">
           <p className="font-bold text-app-text">{t('settings.app')}</p>
           {hasNewVersion && (
@@ -286,7 +287,7 @@ export function SettingsScreen() {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-red-100">
+      <div className={`bg-white rounded-2xl p-5 ${cardShadow} border border-red-100`}>
         <p className="font-bold text-red-500 mb-1">{t('settings.danger')}</p>
         <p className="text-sm text-textMuted mb-3">{t('settings.dangerHint')}</p>
         <button
