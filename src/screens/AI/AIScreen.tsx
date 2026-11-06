@@ -1,7 +1,7 @@
 import { getFeeding } from '../../constants/babyDefaults';
 import { pageBg } from '../../components/shared/cardStyle';
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Check, Copy, Info, RefreshCw, Send, Sparkles, Trash2 } from 'lucide-react';
+import { ArrowLeft, Check, Copy, RefreshCw, Send, Sparkles, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { differenceInWeeks, parseISO } from 'date-fns';
 import { useApp } from '../../context/appStateContext';
@@ -332,15 +332,6 @@ ${lang === 'vi'
                 <ReactMarkdown>{streamingContent}</ReactMarkdown>
               </div>
             </div>
-          </div>
-        )}
-
-        {messages.length > MAX_CONTEXT_MESSAGES && !loading && !streamingContent && (
-          <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-orange-50 border border-peachLight">
-            <Info size={16} strokeWidth={2.2} className="mt-0.5 flex-shrink-0 text-peach" />
-            <p className="text-sm leading-relaxed text-app-text">
-              {t('ai.longChat')}
-            </p>
           </div>
         )}
 

@@ -25,6 +25,8 @@ const MODELS = [
 ];
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 2000;
+const TIMEOUT_MS = 30000; // wait this long before also trying the next model
+const HARD_TIMEOUT_MS = 90000; // give up on one request entirely
 
 // Index into MODELS to start from. Sticky across calls: once a model succeeds,
 // later calls start there instead of retrying already-known-bad models from the top.
@@ -60,8 +62,10 @@ function getNextApiKey(model: string, apiKeys: string[]) {
  * attempts go model A / key 1, model A / key 2, model A / key 1, then model B / key 1, etc.
  *
  * A 503 ("model overloaded") skips the remaining retries for that model and moves
- * straight to the next one, retrying an overloaded model rarely helps and only
- * burns the fixed RETRY_DELAY.
+ * straight to the next one. A model that is just slow (no reply in TIMEOUT_MS) is NOT
+ * cancelled: the next model starts in parallel, the first success wins, and all other
+ * in-flight requests are aborted. Models are tried in priority order, so a higher model
+ * that answers before a later one still wins.
  *
  * The starting model is sticky across calls (see `modelIndex`): once a fallback
  * model succeeds, subsequent calls start there instead of re-trying earlier models
@@ -83,13 +87,17 @@ export async function callGemini(
     return null;
   }
 
-  for (let n = 0; n < MODELS.length; n++) {
-    const i = (modelIndex + n) % MODELS.length;
+  const ctrl = new AbortController();
+  const start = modelIndex;
+  let result: GeminiResult | null = null;
+  let win!: () => void;
+  const won = new Promise<void>(resolve => (win = resolve));
+
+  // One model with retries. Never throws; sets `result` if it is the first to succeed.
+  async function run(i: number) {
     const model = MODELS[i];
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-      if (n > 0 || attempt > 1) {
-        onStatus?.(translate(getStoredLang(), 'ai.retrying'));
-      }
+      if (attempt > 1) onStatus?.(translate(getStoredLang(), 'ai.retrying'));
       try {
         const apiKey = getNextApiKey(model, apiKeys);
         const res = await fetch(
@@ -101,6 +109,7 @@ export async function callGemini(
               system_instruction: { parts: [{ text: systemInstruction }] },
               contents,
             }),
+            signal: AbortSignal.any([ctrl.signal, AbortSignal.timeout(HARD_TIMEOUT_MS)]),
           }
         );
 
@@ -108,16 +117,33 @@ export async function callGemini(
 
         const data = await res.json();
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? 'No response received.';
-        modelIndex = i;
-        return { text, model };
-      } catch (err) {
-        if (err instanceof Error && err.cause === 503) break;
-        if (attempt < MAX_RETRIES) {
-          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        if (!result) {
+          result = { text, model };
+          modelIndex = i;
+          win();
         }
+        return;
+      } catch (err) {
+        // aborted (someone else won), 503 (overloaded) or hard timeout: give up on this model
+        if (ctrl.signal.aborted) return;
+        if (err instanceof Error && (err.cause === 503 || err.name === 'TimeoutError')) return;
+        if (attempt < MAX_RETRIES) await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
       }
     }
   }
 
-  return null;
+  try {
+    const runs: Promise<void>[] = [];
+    for (let n = 0; n < MODELS.length && !result; n++) {
+      if (n > 0) onStatus?.(translate(getStoredLang(), 'ai.retrying'));
+      const p = run((start + n) % MODELS.length);
+      runs.push(p);
+      // Next model starts when this one fails, or is slow (TIMEOUT_MS). Slow ones keep running.
+      await Promise.race([won, p, new Promise(resolve => setTimeout(resolve, TIMEOUT_MS))]);
+    }
+    if (!result) await Promise.race([won, Promise.all(runs)]);
+    return result;
+  } finally {
+    ctrl.abort(); // cancel every request still in flight
+  }
 }
