@@ -28,7 +28,7 @@ type View = { start: number; end: number };
 
 const W = 320;
 const H = 210;
-const PAD = { top: 12, right: 56, bottom: 34, left: 34 };
+const PAD = { top: 12, right: 52, bottom: 34, left: 34 };
 const CHART_W = W - PAD.left - PAD.right;
 const CHART_H = H - PAD.top - PAD.bottom;
 const MIN_SPAN = 8;
@@ -57,6 +57,16 @@ function savePrefs(patch: { mode?: Mode; weeks?: number }) {
   }
 }
 
+// within ±2 normal, ±2 to ±3 yellow, past ±3 red
+function zColor(z: number) {
+  return Math.abs(z) > 3 ? '#ef4444' : Math.abs(z) > 2 ? '#d97706' : '#E8875A';
+}
+
+// one decimal, but whole numbers from 100 up (cm) so the label stays short
+function fmt(v: number) {
+  return v >= 100 ? String(Math.round(v)) : String(Math.round(v * 10) / 10);
+}
+
 function clampView(start: number, end: number): View {
   const span = Math.min(MAX_WEEK, Math.max(MIN_SPAN, end - start));
   const s = Math.max(0, Math.min(MAX_WEEK - span, start));
@@ -66,9 +76,7 @@ function clampView(start: number, end: number): View {
 export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
   const { t } = useLang();
   const [prefs] = useState(loadPrefs);
-  const [mode, setModeState] = useState<Mode>(
-    prefs.mode === 'z' ? 'z' : 'percentile', // an older saved 'value' view is now part of 'percentile'
-  );
+  const [mode, setModeState] = useState<Mode>(prefs.mode === 'z' ? 'z' : 'percentile');
   const setMode = (m: Mode) => {
     setModeState(m);
     savePrefs({ mode: m });
@@ -102,6 +110,9 @@ export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const pointers = useRef(new Map<number, number>()); // pointerId -> client x
   const gesture = useRef({ dist: 0, moved: false });
+
+  // age the right-hand values are read at: latest measurement, else today
+  const babyWeek = last ? last.week : Math.max(0, differenceInDays(new Date(), parseISO(birthDate)) / 7);
 
   const lines = mode === 'percentile'
     ? PERCENTILE_LINES.map(p => ({ id: p, label: `P${p}`, median: p === 50, at: (w: number) => valueAtPercentile(metric, w, gender, p) }))
@@ -218,8 +229,6 @@ export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
         </button>
       </div>
 
-      <p className="text-xs text-textMuted mb-2">{t(`chart.explain.${mode}`)}</p>
-
       <svg
         ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
@@ -265,14 +274,13 @@ export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
 
           {measured.map(p => {
             const z = zScoreOf(metric, p.week, gender, p.val);
-            const pc = percentileOfZ(z);
             return (
               <circle
                 key={p.id}
                 cx={toX(p.week)}
                 cy={toY(p.val)}
                 r="4"
-                fill={pc >= 3 && pc <= 97 ? '#E8875A' : '#ef4444'}
+                fill={zColor(z)}
                 stroke="white"
                 strokeWidth="1.5"
               />
@@ -295,9 +303,9 @@ export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
           const cx = boxX + w / 2;
           return (
             <>
-              <rect x={boxX} y={boxY} width={w} height={h} rx="7" fill="white" stroke="#E8875A" strokeWidth="1" />
+              <rect x={boxX} y={boxY} width={w} height={h} rx="7" fill="white" stroke={zColor(z)} strokeWidth="1" />
               <text x={cx} y={boxY + 11} fontSize="10" fontWeight="800" fill="#3D2B1F" textAnchor="middle">{top}</text>
-              <text x={cx} y={boxY + 21} fontSize="9" fontWeight="700" fill="#E8875A" textAnchor="middle">{bottom}</text>
+              <text x={cx} y={boxY + 21} fontSize="9" fontWeight="700" fill={zColor(z)} textAnchor="middle">{bottom}</text>
             </>
           );
         })()}
@@ -311,9 +319,9 @@ export function GrowthChart({ entries, metric, birthDate, gender }: Props) {
             fontSize="11"
             dominantBaseline="middle"
           >
-            {/* name in bold dark, its value lighter, so the two numbers do not run together */}
+            {/* name, then the line's value at the baby's age (not at the chart edge) */}
             <tspan fontWeight="700" fill={l.median ? '#E8875A' : '#3D2B1F'}>{l.label}</tspan>
-            <tspan dx="4" fill="#9B7B6E">{Math.round(l.at(view.end) * 10) / 10}</tspan>
+            <tspan dx="4" fill="#9B7B6E">{fmt(l.at(babyWeek))}</tspan>
           </text>
         ))}
 

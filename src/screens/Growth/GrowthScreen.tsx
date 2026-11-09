@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Pencil, Sparkles, Scale, Ruler, Baby, type LucideIcon } from 'lucide-react';
+import { Plus, Trash2, Pencil, Sparkles, Scale, Ruler, Baby, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { parseISO, differenceInWeeks, differenceInDays } from 'date-fns';
 import { AdviceModal } from '../../components/ai/AdviceModal';
 import { useLang } from '../../i18n/langContext';
@@ -159,33 +159,36 @@ export function GrowthScreen() {
                     <Trash2 size={15} strokeWidth={2} />
                   </button>
                 </div>
-                {/* one tile per measure: value + percentile pill, and a gauge with a dot where baby sits among 100 babies (the Z score is in the tooltip) */}
+                {/* one tile per measure: value, with Z and P on the right */}
                 <div className="mt-2 mr-3 flex gap-2">
                   {metrics.map(m => {
                     const val = entry[m];
                     const st = val === undefined ? null : statOf(entry, m);
-                    const tone = !st ? '' : st.p > 97 ? 'bg-red-50 text-red-500' : st.p < 3 ? 'bg-purple-50 text-purple-500' : 'text-green-600';
-                    const dot = !st ? '' : st.p > 97 ? 'bg-red-500' : st.p < 3 ? 'bg-purple-500' : 'bg-green-500';
+                    // by Z: within ±2 normal, ±2 to ±3 watch, past ±3 see a doctor
+                    const az = st ? Math.abs(st.z) : 0;
+                    const alertTone = az > 3 ? 'text-red-600' : 'text-amber-800';
+                    const card = az > 3 ? 'bg-red-100 ring-1 ring-red-300' : az > 2 ? 'bg-amber-100 ring-1 ring-amber-300' : 'bg-peachLight/50';
                     const Icon = metricIcon[m];
                     return (
-                      <div key={m} title={st ? `Z ${st.z.toFixed(1)}` : undefined} className="min-w-0 flex-1 rounded-2xl bg-peachLight/50 px-2.5 py-2">
+                      <div key={m} className={`min-w-0 flex-1 rounded-2xl px-2.5 py-2 ${card}`}>
                         <p className="flex items-center gap-1 text-peachDark">
                           <Icon size={13} strokeWidth={2.5} className="shrink-0" />
                           <span className="truncate text-[11px] font-semibold leading-none text-textMuted">{t(`growth.metric.${m}`)}</span>
+                          {az > 2 && <TriangleAlert size={13} strokeWidth={2.5} className={`ml-auto shrink-0 ${alertTone}`} />}
                         </p>
-                        <div className="mt-1.5 flex items-center justify-between gap-1">
+                        <div className="mt-1.5">
                           {val === undefined ? (
-                            <p className="text-base font-extrabold leading-none text-textMuted">-</p>
+                            <p className="text-lg font-extrabold leading-none text-textMuted">-</p>
                           ) : (
-                            <p className="whitespace-nowrap text-base font-extrabold leading-none text-app-text">
+                            <p className="whitespace-nowrap text-lg font-extrabold leading-none text-app-text">
                               {val}<span className="ml-0.5 text-[11px] font-bold text-textMuted">{m === 'weight' ? 'kg' : 'cm'}</span>
                             </p>
                           )}
-                          {st && <span className={`px-1.5 py-0.5 rounded-full text-[11px] font-bold leading-none ${tone}`}>P{Math.round(st.p)}</span>}
                         </div>
                         {st && (
-                          <div className="relative mt-2 h-1 rounded-full bg-white">
-                            <span className={`absolute top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-white ${dot}`} style={{ left: `${Math.min(97, Math.max(3, st.p))}%` }} />
+                          <div className={`mt-2 flex items-center justify-between border-t border-white pt-1.5 text-[11px] font-bold leading-none text-textMuted`}>
+                            <span>Z{st.z > 0 ? '+' : ''}{st.z.toFixed(1)}</span>
+                            <span>P{Math.round(st.p)}</span>
                           </div>
                         )}
                       </div>
