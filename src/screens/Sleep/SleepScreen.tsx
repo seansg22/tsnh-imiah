@@ -58,10 +58,10 @@ export function SleepScreen() {
           <span className="font-semibold text-app-text">{e.start} - {e.end}</span>
           <span className="text-textMuted"> · {details.join(' · ')}</span>
         </p>
-        <button onClick={() => open({ kind: e.kind, entry: e })} className="p-1 text-textMuted hover:text-peach transition-colors flex-shrink-0">
+        <button onClick={ev => { ev.stopPropagation(); open({ kind: e.kind, entry: e }); }} className="p-1 text-textMuted hover:text-peach transition-colors flex-shrink-0">
           <Pencil size={14} strokeWidth={2} />
         </button>
-        <button onClick={() => setDeleteId(e.id)} className="p-1 text-textMuted hover:text-red-400 transition-colors flex-shrink-0">
+        <button onClick={ev => { ev.stopPropagation(); setDeleteId(e.id); }} className="p-1 text-textMuted hover:text-red-400 transition-colors flex-shrink-0">
           <Trash2 size={14} strokeWidth={2} />
         </button>
       </div>
@@ -114,8 +114,8 @@ export function SleepScreen() {
             ...day.nights.map((e, i) => ({ e, Icon: i === 0 ? Moon : null, tone: 'text-indigo-400' })),
           ];
           return (
-            <div key={day.date} data-sleep-day className={`scroll-mt-4 bg-white rounded-2xl px-4 py-3 ${cardShadow}`}>
-              <button type="button" onClick={() => toggle(day.date)} aria-expanded={isOpen} className="flex w-full items-center gap-1 text-left text-sm font-bold text-app-text">
+            <div key={day.date} data-sleep-day onClick={() => toggle(day.date)} className={`cursor-pointer scroll-mt-4 bg-white rounded-2xl px-4 py-3 ${cardShadow}`}>
+              <button type="button" aria-expanded={isOpen} className="flex w-full items-center gap-1 text-left text-sm font-bold text-app-text">
                 <span className="truncate">
                   {formatDate(parseISO(day.date), 'dd MMM yyyy', lang)}
                   {ageWeeks !== null && ageWeeks >= 0 && (
@@ -126,7 +126,7 @@ export function SleepScreen() {
               </button>
 
               {/* summary: total with a naps | night bar, then a tile each for naps and night (their icon colors are the bar legend) */}
-              <button type="button" onClick={() => toggle(day.date)} className="mt-2.5 flex w-full items-stretch gap-2 text-left transition-transform active:scale-[0.98]">
+              <button type="button" className="mt-2.5 flex w-full items-stretch gap-2 text-left transition-transform active:scale-[0.98]">
                 <div className={`${tile} flex-[1.4]`}>
                   <p className="flex items-center gap-1 text-peachDark"><Clock size={14} strokeWidth={2.5} /><span className={`${tileLabel} truncate`}>{t('sl.total')}</span></p>
                   <p className={tileValue}>{formatDuration(day.totalMin)}</p>
@@ -153,7 +153,7 @@ export function SleepScreen() {
               </button>
 
               {/* the detail slides open: a grid row going from 0fr to 1fr animates the height */}
-              <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`} aria-hidden={!isOpen}>
+              <div className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`} aria-hidden={!isOpen}>
                 <div className="overflow-hidden">
                   <div className="mt-2.5 grid grid-cols-[14px_minmax(0,1fr)] items-start gap-x-2 gap-y-1.5">
                     {rows.map(({ e, Icon, tone }) => (

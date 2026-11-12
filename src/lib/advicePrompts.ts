@@ -82,7 +82,7 @@ export function foodData(state: AppState): string {
       ...(e.night ? milk(e.night, 'night') : []),
       milkTotals(e).all.ml > 0 && `total milk ${milkTotals(e).all.ml}${milkTotals(e).all.complete ? '' : '+'} ml (daytime ${milkTotals(e).day.ml}, night ${milkTotals(e).night.ml})`,
       ...solidsOf(e).map((m, i) => `${m.snack ? 'snack' : 'solid'} ${i + 1}: ${m.foods.join(', ')}${m.portion ? ` (${m.portion})` : ''}`),
-      e.poop && `poop ${[e.poop.times !== undefined && `${e.poop.times}x`, e.poop.colors?.join('/'), e.poop.textures?.join('/')].filter(Boolean).join(', ')}`,
+      e.poop && `poop ${[e.poop.times !== undefined && `${e.poop.times}x`, e.poop.colors?.join('/'), e.poop.textures?.join('/'), e.poop.note].filter(Boolean).join(', ')}`,
       e.allergy?.length && `reactions: ${e.allergy.join(', ')}`,
     ].filter(Boolean);
     return `- ${e.date}: ${parts.join('; ')}`;

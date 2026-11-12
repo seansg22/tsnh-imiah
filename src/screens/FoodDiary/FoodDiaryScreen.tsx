@@ -98,6 +98,7 @@ export function FoodDiaryScreen() {
                 entry.poop.times !== undefined && `${entry.poop.times}×`,
                 entry.poop.colors?.length && entry.poop.colors.map(c => t(`fd.poopColor.${c}` as UiKey)).join(', '),
                 entry.poop.textures?.length && entry.poop.textures.map(x => t(`fd.poopTexture.${x}` as UiKey)).join(', '),
+                entry.poop.note,
               ].filter(Boolean) as string[]
             : [];
           const totals = milkTotals(entry);
@@ -145,10 +146,11 @@ export function FoodDiaryScreen() {
           return (
             <div
               key={entry.id}
-              className={`scroll-mt-4 bg-white rounded-2xl pl-4 pr-1 py-3 ${cardShadow} transition-opacity ${editingEntry?.id === entry.id ? 'opacity-50' : ''}`}
+              onClick={() => toggle(entry.id)}
+              className={`cursor-pointer scroll-mt-4 bg-white rounded-2xl pl-4 pr-1 py-3 ${cardShadow} transition-opacity ${editingEntry?.id === entry.id ? 'opacity-50' : ''}`}
             >
               <div className="flex items-center gap-2">
-                <button type="button" onClick={() => toggle(entry.id)} aria-expanded={isOpen} className="flex flex-1 min-w-0 items-center gap-1 text-left text-sm font-bold text-app-text">
+                <button type="button" aria-expanded={isOpen} className="flex flex-1 min-w-0 items-center gap-1 text-left text-sm font-bold text-app-text">
                   <span className="truncate">
                     {formatDate(parseISO(entry.date), 'dd MMM yyyy', lang)}
                     {ageWeeks !== null && ageWeeks >= 0 && (
@@ -158,19 +160,19 @@ export function FoodDiaryScreen() {
                   <ChevronDown size={16} strokeWidth={2.5} className={`flex-shrink-0 text-textMuted transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                 </button>
                 <button
-                  onClick={() => { remember(); setShowForm(false); setEditingEntry(entry); }}
+                  onClick={e => { e.stopPropagation(); remember(); setShowForm(false); setEditingEntry(entry); }}
                   className="p-1.5 text-textMuted hover:text-peach transition-colors flex-shrink-0"
                 >
                   <Pencil size={15} strokeWidth={2} />
                 </button>
                 <button
-                  onClick={() => setDeleteId(entry.id)}
+                  onClick={e => { e.stopPropagation(); setDeleteId(entry.id); }}
                   className="p-1.5 text-textMuted hover:text-red-400 transition-colors flex-shrink-0"
                 >
                   <Trash2 size={15} strokeWidth={2} />
                 </button>
               </div>
-              <div className="mt-2.5 mr-3"><button type="button" onClick={() => toggle(entry.id)} className="flex w-full items-stretch gap-2 text-left transition-transform active:scale-[0.98]">
+              <div className="mt-2.5 mr-3"><button type="button" className="flex w-full items-stretch gap-2 text-left transition-transform active:scale-[0.98]">
                   {totals.all.ml > 0 && (
                     <div className={`${tile} flex-[1.7]`}>
                       <p className="flex items-center gap-1 text-peachDark"><Milk size={14} strokeWidth={2.5} /><span className={tileLabel}>{t('fd.milkTotal')}</span></p>
@@ -204,7 +206,7 @@ export function FoodDiaryScreen() {
                 </button>
               </div>
               {/* the detail slides open: a grid row going from 0fr to 1fr animates the height */}
-              <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`} aria-hidden={!isOpen} onClick={() => toggle(entry.id)}>
+              <div className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`} aria-hidden={!isOpen}>
               <div className="overflow-hidden">
               {groups.length > 0 && (
                 // one grid for the whole card: icon | label | content, so every column lines up across rows
@@ -227,7 +229,7 @@ export function FoodDiaryScreen() {
                     {t('fd.allergy')}
                   </p>
                   {/* the reactions only show when the card is open */}
-                  <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`} onClick={() => toggle(entry.id)}>
+                  <div className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
                     <div className="overflow-hidden">
                       <div className="pl-[22px] pt-1">
                         {/* one reaction per line; long words and new lines wrap inside the card */}

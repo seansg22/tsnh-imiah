@@ -231,7 +231,8 @@ export function FoodDiaryForm({ onSave, onCancel, initialEntry }: Props) {
   const [pTimes, setPTimes] = useState<number | undefined>(initialEntry?.poop?.times);
   const [pColors, setPColors] = useState<string[]>(initialEntry?.poop?.colors ?? []);
   const [pTextures, setPTextures] = useState<string[]>(initialEntry?.poop?.textures ?? []);
-  const hasPoop = pTimes !== undefined || pColors.length > 0 || pTextures.length > 0;
+  const [pNote, setPNote] = useState(initialEntry?.poop?.note ?? '');
+  const hasPoop = pTimes !== undefined || pColors.length > 0 || pTextures.length > 0 || pNote.trim() !== '';
   const toggleIn = (set: (f: (p: string[]) => string[]) => void, v: string) => set(p => (p.includes(v) ? p.filter(x => x !== v) : [...p, v]));
   // ready-made reactions are tags, anything typed before is one free text box
   const isTag = (a: string) => (ALLERGIES as readonly string[]).includes(a);
@@ -256,7 +257,7 @@ export function FoodDiaryForm({ onSave, onCancel, initialEntry }: Props) {
       date,
       ...splitDayMilks(dayOuts),
       ...(Object.keys(nightOut).length ? { night: nightOut } : {}),
-      ...(hasPoop ? { poop: { ...(pTimes !== undefined ? { times: pTimes } : {}), ...(pColors.length ? { colors: pColors } : {}), ...(pTextures.length ? { textures: pTextures } : {}) } } : {}),
+      ...(hasPoop ? { poop: { ...(pTimes !== undefined ? { times: pTimes } : {}), ...(pColors.length ? { colors: pColors } : {}), ...(pTextures.length ? { textures: pTextures } : {}), ...(pNote.trim() ? { note: pNote.trim() } : {}) } } : {}),
       ...(allAllergy.length ? { allergy: allAllergy } : {}),
       ...(solids.length ? { solids } : {}),
     });
@@ -352,6 +353,7 @@ export function FoodDiaryForm({ onSave, onCancel, initialEntry }: Props) {
               ))}
             </div>
           </div>
+          <AutoTextarea placeholder={t('fd.phPoop')} value={pNote} onChange={setPNote} className={smallInputCls} />
         </section>
 
         <section className={sectionCls}>

@@ -98,6 +98,7 @@ export interface PoopLog {
   times?: number;
   colors?: string[]; // keys of POOP_COLORS
   textures?: string[]; // POOP_TEXTURES
+  note?: string; // free text
 }
 
 export interface FoodEntry extends MilkFields { // the milk fields are the daytime milk
