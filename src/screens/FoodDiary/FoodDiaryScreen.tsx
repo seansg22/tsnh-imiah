@@ -15,6 +15,9 @@ import { dayMilksOf } from '../../lib/dayMilks';
 import { foldTimes } from '../../lib/foodForm';
 import type { LucideIcon } from 'lucide-react';
 import type { FoodEntry, MilkFields } from '../../types';
+import { VoiceConfirm } from '../../components/food/VoiceConfirm';
+import { VoiceFill } from '../../components/shared/VoiceFill';
+import { foodVoicePrompt, mergeVoiceFood, parseVoiceFood, type VoiceFood } from '../../lib/voiceFood';
 import { cardShadow } from '../../components/shared/cardStyle';
 
 interface Row { name: string; parts: unknown[]; badges?: string[] }
@@ -52,6 +55,30 @@ export function FoodDiaryScreen() {
     setEditingEntry(null);
   }
 
+  // a spoken note is small: the system picks the day (said day or today), works out the new day, and asks first
+  const [pending, setPending] = useState<{ said: string; old?: FoodEntry; merged: FoodEntry; del: boolean } | null>(null);
+  // returns an error message key when the note cannot be used, the mic popup shows it
+  function handleVoice(v: VoiceFood, said: string): UiKey | void {
+    const today = new Date().toISOString().split('T')[0]; // same "today" as the form
+    if (v.date && v.date > today) return 'voice.futureDay';
+    const date = v.date ?? today;
+    const old = entries.find(e => e.date === date);
+    if (v.deleteDay && !old) return 'voice.noDay';
+    const merged = v.deleteDay ? { id: date, date } : mergeVoiceFood(old, v, date);
+    const empty = Object.keys(merged).length === 2; // nothing left but id and date
+    if (empty && !old) return 'voice.nothing';
+    setPending({ said, old, merged, del: empty }); // an old day with nothing left is deleted
+  }
+  const micRef = useRef<(() => void) | null>(null);
+  function retryVoice() {
+    setPending(null);
+    micRef.current?.();
+  }
+  function confirmVoice() {
+    if (pending) dispatch(pending.del ? { type: 'DELETE_FOOD_ENTRY', payload: pending.merged.id } : { type: 'UPSERT_FOOD_ENTRY', payload: pending.merged });
+    setPending(null);
+  }
+
   function handleCancel() {
     setShowForm(false);
     setEditingEntry(null);
@@ -69,13 +96,17 @@ export function FoodDiaryScreen() {
         ) : showForm ? (
           <FoodDiaryForm onSave={handleSave} onCancel={handleCancel} />
         ) : (
+          <div className="flex items-start gap-2">
+          <VoiceFill prompt={() => foodVoicePrompt(new Date().toISOString().split('T')[0], entries)} parse={parseVoiceFood} onResult={handleVoice} startRef={micRef} />
+          {pending && <VoiceConfirm old={pending.old} merged={pending.merged} said={pending.said} del={pending.del} onRetry={retryVoice} onConfirm={confirmVoice} onCancel={() => setPending(null)} />}
           <button
             onClick={() => { remember(); setShowForm(true); }}
-            className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border-2 border-dashed border-peach/60 bg-white/60 text-peachDark text-xs font-bold hover:bg-white transition-colors"
+            className="flex-1 min-w-0 flex items-center justify-center gap-1.5 py-2 rounded-xl border-2 border-dashed border-peach/60 bg-white/60 text-peachDark text-xs font-bold hover:bg-white transition-colors"
           >
             <Plus size={14} strokeWidth={2.5} />
             {t('fd.add')}
           </button>
+          </div>
         )}
       </div>
 

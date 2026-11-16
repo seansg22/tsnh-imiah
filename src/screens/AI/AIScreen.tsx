@@ -1,7 +1,8 @@
 import { getFeeding } from '../../constants/babyDefaults';
 import { pageBg } from '../../components/shared/cardStyle';
+import { useVoiceInput } from '../../hooks/useVoiceInput';
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Check, Copy, RefreshCw, Send, Sparkles, Trash2 } from 'lucide-react';
+import { ArrowLeft, Check, Copy, Mic, RefreshCw, Send, Sparkles, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { differenceInWeeks, parseISO } from 'date-fns';
 import { useApp } from '../../context/appStateContext';
@@ -47,6 +48,8 @@ export function AIScreen() {
   const streamIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  // dictation: tap Done and what was said (after anything already typed) is sent as the question
+  const voice = useVoiceInput(said => { void send(`${input.trim()} ${said}`.trim()); });
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -343,28 +346,43 @@ ${lang === 'vi'
         className="flex-shrink-0 border-t border-black/5"
         style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
       >
-        <div className="flex items-end gap-2 px-4 pt-3">
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={t('ai.placeholder')}
-            rows={1}
-            className="flex-1 resize-none rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-app-text placeholder:text-textMuted focus:outline-none focus:ring-2 focus:ring-peach/40"
-            style={{ lineHeight: '1.5' }}
-          />
-          <button
-            type="button"
-            onClick={() => send()}
-            disabled={!input.trim() || loading}
-            className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-peach text-white shadow-sm transition-opacity disabled:opacity-40 active:scale-95"
-            aria-label={t('ai.send')}
-          >
-            <Send size={18} strokeWidth={2.2} />
-          </button>
+        <div className="px-4 pt-3">
+          {/* one pill like Gemini: the text, a mic and the send button all inside it */}
+          <div className="flex items-end gap-1 rounded-3xl border border-black/10 bg-white pr-1.5 focus-within:ring-2 focus-within:ring-peach/40">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={t('ai.placeholder')}
+              rows={1}
+              className="min-w-0 flex-1 resize-none bg-transparent px-4 py-3 text-sm text-app-text placeholder:text-textMuted focus:outline-none"
+              style={{ lineHeight: '1.5' }}
+            />
+            {voice.supported && (
+              <button
+                type="button"
+                onClick={voice.start}
+                disabled={loading}
+                className="mb-1 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-peachDark transition-opacity disabled:opacity-40 active:bg-peachLight"
+                aria-label={t('voice.dictate')}
+              >
+                <Mic size={20} strokeWidth={2.2} />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => send()}
+              disabled={!input.trim() || loading}
+              className="mb-1 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-peach text-white shadow-sm transition-opacity disabled:opacity-40 active:scale-95"
+              aria-label={t('ai.send')}
+            >
+              <Send size={18} strokeWidth={2.2} />
+            </button>
+          </div>
         </div>
       </div>
+    {voice.modal}
     </div>
   );
 }
