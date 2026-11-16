@@ -28,6 +28,7 @@ interface Message {
 // TODO: raise to 20 after testing.
 const MAX_CONTEXT_MESSAGES = 2;
 const MAX_INPUT_ROWS = 5;
+const SUMMARIZE = import.meta.env.VITE_AI_SUMMARIZE === 'true'; // build-time switch, see the diary block in send()
 // Cleared chats wait on this device; one AI call summarizes them all once this many have piled up.
 const NOTE_EVERY_CLEARS = 10;
 
@@ -131,12 +132,16 @@ export function AIScreen() {
 
     const notesLine = baby.notes?.trim() ? `\n- Parent's notes: ${baby.notes.trim()}` : '';
 
-    // full history: last 7 days in detail, older weeks summarized with abnormal days marked
-    const section = (title: string, recent: string, older: string) => `\n\n${title} (last ${RECENT_DAYS} days in detail):\n${recent}${older ? `\nOlder, summarized (ABNORMAL = unusual days):\n${older}` : ''}`;
+    // Raw by default: every diary row goes to the AI as saved. Set VITE_AI_SUMMARIZE=true at build time to get the
+    // old shape back: the newest days in detail, older weeks summarized with abnormal days marked.
+    const days = SUMMARIZE ? RECENT_DAYS : Infinity;
+    const growthRows = SUMMARIZE ? RECENT_GROWTH : Infinity;
+    const scope = (n: number, unit: string) => (SUMMARIZE ? `last ${n} ${unit} in detail` : `all ${unit}`);
+    const section = (title: string, recent: string, older: string) => `\n\n${title} (${scope(RECENT_DAYS, 'days')}):\n${recent}${older ? `\nOlder, summarized (ABNORMAL = unusual days):\n${older}` : ''}`;
     const diaryLines = [
-      state.growthEntries.length > 0 && `\n\nGrowth (newest ${RECENT_GROWTH} measurements in detail):\n${growthData(state, RECENT_GROWTH)}${growthHistory(state) ? `\nOlder, summarized (ABNORMAL = unusual):\n${growthHistory(state)}` : ''}`,
-      state.foodEntries.length > 0 && section('Food diary', foodData(state, RECENT_DAYS), foodHistory(state)),
-      state.sleepEntries.length > 0 && section('Sleep diary', sleepData(state, RECENT_DAYS), sleepHistory(state)),
+      state.growthEntries.length > 0 && `\n\nGrowth (${SUMMARIZE ? `newest ${RECENT_GROWTH} measurements in detail` : 'all measurements'}):\n${growthData(state, growthRows)}${SUMMARIZE && growthHistory(state) ? `\nOlder, summarized (ABNORMAL = unusual):\n${growthHistory(state)}` : ''}`,
+      state.foodEntries.length > 0 && section('Food diary', foodData(state, days), SUMMARIZE ? foodHistory(state) : ''),
+      state.sleepEntries.length > 0 && section('Sleep diary', sleepData(state, days), SUMMARIZE ? sleepHistory(state) : ''),
     ].filter(Boolean).join('');
 
     const historyLine = state.knowledgeBase
@@ -159,8 +164,10 @@ ${lang === 'vi'
 - Address the user as "bố/mẹ của bé ${baby.name}", but only in your first response of the conversation.`
   : `- Always answer in English.
 - Address the user as "${baby.name}'s parent", but only in your first response of the conversation.`}
-- Format answers as bullet points, one concise sentence per bullet
-- Use 3 to 5 bullets max unless user explicitly asks to be more comprehensive
+- Answer in detail, not just a summary. Format as bullet points, each bullet 1 to 2 sentences that say what is going on, why it matters, and what to do
+- Use 5 to 8 bullets. When the answer has several parts (for example growth, milk, solids, sleep), group the bullets under short bold headings
+- Use the baby's real numbers and diary entries (weight, length, milk ml, meals, sleep) and compare them with the normal range for this age
+- Even for a simple question, give the reason and one or two practical tips
 - Give practical, age-aware, gender-aware, measurement-aware guidance`;
 
     // Only the most recent messages go to the AI (the full chat stays stored and synced).
