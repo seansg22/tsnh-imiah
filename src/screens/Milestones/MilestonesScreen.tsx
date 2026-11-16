@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Search, Sparkles } from 'lucide-react';
+import { Check, ChevronDown, Search, Sparkles } from 'lucide-react';
 import { AdviceModal } from '../../components/ai/AdviceModal';
 import { getMilestones } from '../../data/localized';
 import { useLang } from '../../i18n/langContext';
@@ -31,6 +31,8 @@ export function MilestonesScreen() {
   const [filter, setFilter] = useState<CategoryFilter>('all');
   const [search, setSearch] = useState('');
   const [showAdvice, setShowAdvice] = useState(false);
+  // manual open/close per group; if unset, a fully done group is collapsed
+  const [toggled, setToggled] = useState<Record<string, boolean>>({});
   const stickyRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -119,10 +121,27 @@ export function MilestonesScreen() {
             m => m.weekRange[0] >= group.range[0] && m.weekRange[0] < group.range[1]
           );
           if (groupMilestones.length === 0) return null;
+          const allDone = groupMilestones.every(m => achieved.has(m.id) || skipped.has(m.id));
+          const open = query ? true : toggled[group.label] ?? !allDone;
           return (
             <div key={group.label}>
-              <p className="text-xs font-bold text-textMuted uppercase tracking-wider mb-2">{t(group.label)}</p>
-              <div className="space-y-2">
+              <button
+                onClick={() => setToggled(p => ({ ...p, [group.label]: !open }))}
+                aria-expanded={open}
+                className="w-full flex items-center justify-between text-xs font-bold text-textMuted uppercase tracking-wider mb-2"
+              >
+                <span className="flex items-center gap-2">
+                  {t(group.label)}
+                  {allDone && (
+                    <span className="flex items-center gap-1 normal-case rounded-full bg-green-100 text-green-700 px-2 py-0.5">
+                      <Check size={12} strokeWidth={3} />
+                      {groupMilestones.length}/{groupMilestones.length}
+                    </span>
+                  )}
+                </span>
+                <ChevronDown size={16} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+              </button>
+              {open && <div className="space-y-2">
                 {groupMilestones.map(m => (
                   <MilestoneItem
                     key={m.id}
@@ -134,7 +153,7 @@ export function MilestonesScreen() {
                     onToggle={() => dispatch({ type: 'TOGGLE_MILESTONE', payload: m.id })}
                   />
                 ))}
-              </div>
+              </div>}
             </div>
           );
         })}
