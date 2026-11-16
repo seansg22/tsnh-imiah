@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { RefreshCw, Sparkles, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import ReactMarkdown from 'react-markdown';
@@ -50,17 +50,43 @@ export function AdviceModal({ kind, onClose }: { kind: AdviceKind; onClose: () =
   const [loading, setLoading] = useState(!saved); // first open with nothing saved: the effect below asks right away
   const [error, setError] = useState(false);
   const [status, setStatus] = useState('');
+  // Fresh answers type in gradually, same pace as the chat screen. null = show everything.
+  const [shown, setShown] = useState<number | null>(null);
+  const typingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  function stopTyping() {
+    if (typingRef.current) clearInterval(typingRef.current);
+    typingRef.current = null;
+    setShown(null);
+  }
+
+  function typeIn(text: string) {
+    let i = 0;
+    typingRef.current = setInterval(() => {
+      i += 3;
+      if (i >= text.length) stopTyping();
+      else setShown(i);
+    }, 16);
+  }
+
+  useEffect(() => () => {
+    if (typingRef.current) clearInterval(typingRef.current);
+  }, []);
 
   function run() {
     const { system, user } = buildAdvicePrompt(kind, state, lang);
     callAI(system, [{ role: 'user', content: user }], setStatus).then(result => {
-      if (result) setSaved({ text: result.text, timestamp: nowTimestamp() });
-      else setError(true);
+      if (result) {
+        setSaved({ text: result.text, timestamp: nowTimestamp() });
+        setShown(0);
+        typeIn(result.text);
+      } else setError(true);
       setLoading(false);
     });
   }
 
   function ask() {
+    stopTyping();
     setLoading(true);
     setError(false);
     setStatus('');
@@ -111,7 +137,7 @@ export function AdviceModal({ kind, onClose }: { kind: AdviceKind; onClose: () =
               {saved && !error && (
                 <>
                   <div className="prose prose-sm prose-neutral max-w-none">
-                    <ReactMarkdown>{saved.text}</ReactMarkdown>
+                    <ReactMarkdown>{shown === null ? saved.text : saved.text.slice(0, shown)}</ReactMarkdown>
                   </div>
                   <p className="mt-3 text-xs text-textMuted">{t('ai.advice.updated', { date: formatDateTime(saved.timestamp, lang) })}</p>
                 </>

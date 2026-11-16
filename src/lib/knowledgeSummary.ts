@@ -10,25 +10,27 @@ interface TranscriptMessage {
 const NOTHING_NOTABLE = 'NOTHING_NOTABLE';
 
 /**
- * Reads a (timestamped) Ask AI conversation and asks the AI to distill it into
+ * Reads several (timestamped) Ask AI conversations and asks the AI to distill them into
  * durable, dated knowledge about the baby worth remembering for future conversations.
- * Returns null if the call fails or nothing notable was discussed.
+ * Returns null if nothing notable was discussed. Throws if the AI call fails, so the caller can keep its queue.
  */
 export async function summarizeConversation(
-  messages: TranscriptMessage[],
+  conversations: TranscriptMessage[][],
   babyName: string,
   lang: Lang = 'vi'
 ): Promise<string | null> {
-  const transcript = messages
+  const transcript = conversations
+    .map(messages => messages
     .map(m => {
       const time = m.timestamp ? new Date(m.timestamp).toISOString() : 'unknown time';
       const speaker = m.role === 'user' ? 'Parent' : 'AI';
       return `[${time}] ${speaker}: ${m.content}`;
     })
-    .join('\n');
+    .join('\n'))
+    .join('\n\n--- next conversation ---\n\n');
 
   const systemInstruction = `You are a memory-extraction assistant for a baby-tracking app.
-Read this timestamped conversation between a parent and an AI assistant about their baby, ${babyName}.
+Read these timestamped conversations between a parent and an AI assistant about their baby, ${babyName}.
 Extract ONLY durable, factual knowledge that is specifically meaningful about ${babyName}, health events,
 incidents, preferences, routines, or facts the parent mentioned that aren't already static profile data.
 
@@ -44,7 +46,7 @@ timestamps, or from a date mentioned in the text if more specific), e.g.:
 If nothing meaningful/durable about ${babyName} was discussed, respond with exactly: ${NOTHING_NOTABLE}`;
 
   const result = await callAI(systemInstruction, [{ role: 'user', content: transcript }]);
-  if (!result) return null;
+  if (!result) throw new Error('summary call failed');
 
   const text = result.text.trim();
   if (!text || text === NOTHING_NOTABLE) return null;

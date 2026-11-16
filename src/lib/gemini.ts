@@ -12,26 +12,25 @@ export function getStoredLang(): Lang {
   }
 }
 
+// Fastest first: all lite models, then hydrogen. 3.8 and 3.7 were timing out, so they are fallbacks.
 const MODELS = [
-  'gemini-3.8-flash',
-  'gemini-3.7-flash',
-  'gemini-3.6-flash',
-  'gemini-3.5-flash',
-  'gemini-3-flash',
-  'gemini-2.5-flash',
   'gemini-3.5-flash-lite',
   'gemini-3.1-flash-lite',
   'gemini-2.5-flash-lite',
+  'gemini-4-hydrogen',
+  'gemini-3.5-flash',
+  'gemini-3.6-flash',
+  'gemini-3.8-flash',
+  'gemini-3.7-flash',
+  'gemini-3-flash',
+  'gemini-2.5-flash',
 ];
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 2000;
 const TIMEOUT_MS = 15000; // wait this long before also trying the next model
 const HARD_TIMEOUT_MS = 90000; // give up on one request entirely
 
 // Index into MODELS to start from. Sticky across calls: once a model succeeds,
 // later calls start there instead of retrying already-known-bad models from the top.
 let modelIndex = 0;
-const keyIndexes = new Map<string, number>();
 
 export interface GeminiContent {
   role: string;
@@ -43,6 +42,16 @@ export interface GeminiResult {
   model: string;
 }
 
+// Thinking as low as each model allows. 2.5 takes thinkingBudget (and 400s on thinkingLevel).
+// These reject "minimal" with a 400 (tested), so they get "low".
+const NO_MINIMAL = ['gemini-4-hydrogen', 'gemini-3.8-flash'];
+function generationConfig(model: string) {
+  const thinkingConfig = model.startsWith('gemini-2.5')
+    ? { thinkingBudget: 0 }
+    : { thinkingLevel: NO_MINIMAL.includes(model) ? 'low' : 'minimal' };
+  return { thinkingConfig };
+}
+
 function getApiKeys() {
   return String(import.meta.env.VITE_GEMINI_API_KEY ?? '')
     .split(',')
@@ -50,18 +59,12 @@ function getApiKeys() {
     .filter(Boolean);
 }
 
-function getNextApiKey(model: string, apiKeys: string[]) {
-  const index = keyIndexes.get(model) ?? 0;
-  keyIndexes.set(model, index + 1);
-  return apiKeys[index % apiKeys.length];
-}
-
 /**
  * Calls the Gemini generateContent API, falling back through MODELS until one succeeds.
- * Each model rotates through all comma-separated keys in VITE_GEMINI_API_KEY, so repeated
- * attempts go model A / key 1, model A / key 2, model A / key 1, then model B / key 1, etc.
+ * Each model tries every comma-separated key in VITE_GEMINI_API_KEY in order, then the next
+ * model: model A / key 1, 2, 3, 4, then model B / key 1, 2, 3, 4, etc.
  *
- * A 503 ("model overloaded") skips the remaining retries for that model and moves
+ * A 503 ("model overloaded"), 400 or 404 skips the remaining keys for that model and moves
  * straight to the next one. A model that is just slow (no reply in TIMEOUT_MS) is NOT
  * cancelled: the next model starts in parallel, the first success wins, and all other
  * in-flight requests are aborted. Models are tried in priority order, so a higher model
@@ -96,10 +99,11 @@ export async function callGemini(
   // One model with retries. Never throws; sets `result` if it is the first to succeed.
   async function run(i: number) {
     const model = MODELS[i];
-    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    // one attempt per key, always key 1, 2, 3... in order (a different key after a 429 needs no pause)
+    for (let attempt = 1; attempt <= apiKeys.length; attempt++) {
       if (attempt > 1) onStatus?.(translate(getStoredLang(), 'ai.retrying'));
       try {
-        const apiKey = getNextApiKey(model, apiKeys);
+        const apiKey = apiKeys[attempt - 1];
         const res = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`,
           {
@@ -108,6 +112,7 @@ export async function callGemini(
             body: JSON.stringify({
               system_instruction: { parts: [{ text: systemInstruction }] },
               contents,
+              generationConfig: generationConfig(model),
             }),
             signal: AbortSignal.any([ctrl.signal, AbortSignal.timeout(HARD_TIMEOUT_MS)]),
           }
@@ -116,7 +121,9 @@ export async function callGemini(
         if (!res.ok) throw new Error(`HTTP ${res.status}`, { cause: res.status });
 
         const data = await res.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? 'No response received.';
+        // the answer can come back split over several parts: join them all (skipping thought parts)
+        const parts: { text?: string; thought?: boolean }[] = data.candidates?.[0]?.content?.parts ?? [];
+        const text = parts.filter(p => !p.thought).map(p => p.text ?? '').join('') || 'No response received.';
         if (!result) {
           result = { text, model };
           modelIndex = i;
@@ -124,10 +131,9 @@ export async function callGemini(
         }
         return;
       } catch (err) {
-        // aborted (someone else won), 503 (overloaded) or hard timeout: give up on this model
+        // aborted (someone else won), 503 (overloaded), 400/404 (will never work) or hard timeout: give up on this model
         if (ctrl.signal.aborted) return;
-        if (err instanceof Error && (err.cause === 503 || err.name === 'TimeoutError')) return;
-        if (attempt < MAX_RETRIES) await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        if (err instanceof Error && (err.cause === 503 || err.cause === 400 || err.cause === 404 || err.name === 'TimeoutError')) return;
       }
     }
   }

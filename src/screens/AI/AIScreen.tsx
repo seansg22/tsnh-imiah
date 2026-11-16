@@ -27,12 +27,16 @@ interface Message {
 // TODO: raise to 20 after testing.
 const MAX_CONTEXT_MESSAGES = 2;
 const MAX_INPUT_ROWS = 5;
+// Cleared chats wait on this device; one AI call summarizes them all once this many have piled up.
+const NOTE_EVERY_CLEARS = 10;
 
 export function AIScreen() {
   const { state, dispatch } = useApp();
   const { t, lang } = useLang();
   const age = useBabyAge(state.babyProfile?.birthDate ?? null);
   const [messages, setMessages] = useLocalStorage<Message[]>('ai-messages', []);
+  const [pendingNotes, setPendingNotes] = useLocalStorage<Message[][]>('ai-pending-notes', []);
+  const noting = useRef(false);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   // Transient "retrying..." status shown next to the loading indicator. Never added to
@@ -234,16 +238,23 @@ ${lang === 'vi'
               setMessages([]);
 
               if (clearedMessages.length > 0) {
-                summarizeConversation(clearedMessages, state.babyProfile?.name ?? t('ai.theBaby'), lang)
-                  .then(summary => {
-                    if (summary) {
-                      dispatch({
-                        type: 'ADD_KNOWLEDGE_ENTRY',
-                        payload: { id: crypto.randomUUID(), createdAt: new Date().toISOString(), content: summary },
-                      });
-                    }
-                  })
-                  .catch(err => console.error('Knowledge summarization failed', err));
+                const batch = [...pendingNotes, clearedMessages];
+                setPendingNotes(batch);
+                if (batch.length >= NOTE_EVERY_CLEARS && !noting.current) {
+                  noting.current = true;
+                  summarizeConversation(batch, state.babyProfile?.name ?? t('ai.theBaby'), lang)
+                    .then(summary => {
+                      if (summary) {
+                        dispatch({
+                          type: 'ADD_KNOWLEDGE_ENTRY',
+                          payload: { id: crypto.randomUUID(), createdAt: new Date().toISOString(), content: summary },
+                        });
+                      }
+                      setPendingNotes([]); // done (or nothing notable); on failure they stay for the next clear
+                    })
+                    .catch(err => console.error('Knowledge summarization failed', err))
+                    .finally(() => { noting.current = false; });
+                }
               }
             }}
             className="flex h-9 w-9 items-center justify-center rounded-full bg-black/5 text-textMuted"
