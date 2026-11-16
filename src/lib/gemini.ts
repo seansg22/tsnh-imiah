@@ -25,7 +25,7 @@ const MODELS = [
 ];
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 2000;
-const TIMEOUT_MS = 30000; // wait this long before also trying the next model
+const TIMEOUT_MS = 15000; // wait this long before also trying the next model
 const HARD_TIMEOUT_MS = 90000; // give up on one request entirely
 
 // Index into MODELS to start from. Sticky across calls: once a model succeeds,

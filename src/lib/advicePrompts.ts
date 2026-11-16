@@ -32,9 +32,9 @@ function babyInfo(state: AppState): string {
   ].filter(Boolean).join('\n');
 }
 
-function growthData(state: AppState): string {
+export function growthData(state: AppState, last = Infinity): string {
   const baby = state.babyProfile!;
-  const rows = [...state.growthEntries].sort((a, b) => a.date.localeCompare(b.date)).map(e => {
+  const rows = [...state.growthEntries].sort((a, b) => a.date.localeCompare(b.date)).slice(-last).map(e => {
     const week = differenceInDays(parseISO(e.date), parseISO(baby.birthDate)) / 7;
     const parts = (['weight', 'length', 'head'] as GrowthMetric[]).flatMap(m => {
       const v = e[m];
@@ -48,8 +48,8 @@ function growthData(state: AppState): string {
   return rows.length ? rows.join('\n') : 'No growth entries yet.';
 }
 
-export function sleepData(state: AppState): string {
-  const rows = groupByDay(state.sleepEntries).slice(0, 14).reverse().map(d => {
+export function sleepData(state: AppState, days = 14): string {
+  const rows = groupByDay(state.sleepEntries).slice(0, days).reverse().map(d => {
     const one = (e: SleepEntry) =>
       [
         `${e.start}-${e.end} (${formatDuration(sleepMinutes(e.start, e.end))})`,
@@ -67,8 +67,8 @@ export function sleepData(state: AppState): string {
   return rows.length ? rows.join('\n') : 'No sleep entries yet.';
 }
 
-export function foodData(state: AppState): string {
-  const rows = [...state.foodEntries].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 14).reverse().map(e => {
+export function foodData(state: AppState, days = 14): string {
+  const rows = [...state.foodEntries].sort((a, b) => b.date.localeCompare(a.date)).slice(0, days).reverse().map(e => {
     const amount = (ml?: number, times?: number) => (ml !== undefined ? ` ${ml} ml` : ` ${times}x`);
     const milk = (raw: MilkFields, when: string) => {
       const m = foldTimes(raw);

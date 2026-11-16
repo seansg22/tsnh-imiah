@@ -12,7 +12,8 @@ import { callAI } from '../../lib/ai';
 import { summarizeConversation } from '../../lib/knowledgeSummary';
 import { useLang } from '../../i18n/langContext';
 import { nowTimestamp } from '../../lib/timestamp';
-import { foodData, sleepData } from '../../lib/advicePrompts';
+import { foodData, growthData, sleepData } from '../../lib/advicePrompts';
+import { foodHistory, growthHistory, RECENT_DAYS, RECENT_GROWTH, sleepHistory } from '../../lib/historyDigest';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -105,20 +106,6 @@ export function AIScreen() {
 
     const baby = state.babyProfile!;
 
-    const latestEntry = state.growthEntries
-      .slice()
-      .sort((a, b) => b.date.localeCompare(a.date))[0];
-
-    const measurementsLine = latestEntry
-      ? [
-          latestEntry.weight != null ? `weight ${latestEntry.weight} kg` : null,
-          latestEntry.length != null ? `length ${latestEntry.length} cm` : null,
-          latestEntry.head != null ? `head circumference ${latestEntry.head} cm` : null,
-        ]
-          .filter(Boolean)
-          .join(', ')
-      : null;
-
     const achievedSet = new Set(state.achievedMilestones);
     const achievedLabels = milestones
       .filter(m => achievedSet.has(m.id))
@@ -137,10 +124,12 @@ export function AIScreen() {
 
     const notesLine = baby.notes?.trim() ? `\n- Parent's notes: ${baby.notes.trim()}` : '';
 
-    // recent diaries (up to 14 days each), only when the parent has written any
+    // full history: last 7 days in detail, older weeks summarized with abnormal days marked
+    const section = (title: string, recent: string, older: string) => `\n\n${title} (last ${RECENT_DAYS} days in detail):\n${recent}${older ? `\nOlder, summarized (ABNORMAL = unusual days):\n${older}` : ''}`;
     const diaryLines = [
-      state.foodEntries.length > 0 && `\n\nRecent food diary:\n${foodData(state)}`,
-      state.sleepEntries.length > 0 && `\n\nRecent sleep diary:\n${sleepData(state)}`,
+      state.growthEntries.length > 0 && `\n\nGrowth (newest ${RECENT_GROWTH} measurements in detail):\n${growthData(state, RECENT_GROWTH)}${growthHistory(state) ? `\nOlder, summarized (ABNORMAL = unusual):\n${growthHistory(state)}` : ''}`,
+      state.foodEntries.length > 0 && section('Food diary', foodData(state, RECENT_DAYS), foodHistory(state)),
+      state.sleepEntries.length > 0 && section('Sleep diary', sleepData(state, RECENT_DAYS), sleepHistory(state)),
     ].filter(Boolean).join('');
 
     const historyLine = state.knowledgeBase
@@ -155,7 +144,7 @@ Baby:
 - Age: ${age.weeks} weeks
 - Gender: ${baby.gender}
 ${feedingLines}
-- Solids: ${solidsLine}${measurementsLine ? `\n- Latest measurements: ${measurementsLine}` : ''}${milestonesLine ? `\n- Achieved milestones: ${milestonesLine}` : ''}${notesLine}${diaryLines}${historyLine ? `\n\nKnown history about ${baby.name} from past conversations:\n${historyLine}` : ''}
+- Solids: ${solidsLine}${milestonesLine ? `\n- Achieved milestones: ${milestonesLine}` : ''}${notesLine}${diaryLines}${historyLine ? `\n\nKnown history about ${baby.name} from past conversations:\n${historyLine}` : ''}
 
 Rules:
 ${lang === 'vi'
