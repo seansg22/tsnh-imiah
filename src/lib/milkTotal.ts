@@ -30,3 +30,9 @@ export function milkTotals(e: FoodEntry): { day: MilkTotal; night: MilkTotal; al
   const night = e.night ?? {};
   return { day: sum(day), night: sum([night]), all: sum([...day, night]) };
 }
+
+// number of feeds (cữ): the times when given, else 1 per mom/formula part that has ml
+export function milkFeeds(e: FoodEntry): number {
+  return [...dayMilksOf(e), e.night ?? {}].map(foldTimes).reduce(
+    (n, m) => n + (m.momTimes ?? (m.momMl !== undefined ? 1 : 0)) + (m.formulaTimes ?? (m.formulaMl !== undefined ? 1 : 0)), 0);
+}

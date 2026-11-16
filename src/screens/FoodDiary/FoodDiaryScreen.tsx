@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { Plus, Trash2, Pencil, Sun, Moon, Milk, Utensils, TriangleAlert, Baby, ChevronDown, Check } from 'lucide-react';
+import { Plus, Trash2, Pencil, Sun, Moon, Milk, Utensils, TriangleAlert, Baby, ChevronDown } from 'lucide-react';
 import { parseISO, differenceInWeeks } from 'date-fns';
 import { useLang } from '../../i18n/langContext';
 import type { UiKey } from '../../i18n/ui';
@@ -10,7 +10,7 @@ import { DateInput } from '../../components/shared/DateInput';
 import { FoodDiaryForm } from '../../components/food/FoodDiaryForm';
 import { ALLERGIES, FOODS, PORTIONS } from '../../components/food/foodOptions';
 import { solidsOf } from '../../lib/solids';
-import { milkTotals, type MilkTotal } from '../../lib/milkTotal';
+import { milkTotals, milkFeeds, type MilkTotal } from '../../lib/milkTotal';
 import { dayMilksOf } from '../../lib/dayMilks';
 import { foldTimes } from '../../lib/foodForm';
 import type { LucideIcon } from 'lucide-react';
@@ -173,10 +173,12 @@ export function FoodDiaryScreen() {
                 </button>
               </div>
               <div className="mt-2.5 mr-3"><button type="button" className="flex w-full items-stretch gap-2 text-left transition-transform active:scale-[0.98]">
-                  {totals.all.ml > 0 && (
+                  {(
                     <div className={`${tile} flex-[1.7]`}>
                       <p className="flex items-center gap-1 text-peachDark"><Milk size={14} strokeWidth={2.5} /><span className={tileLabel}>{t('fd.milkTotal')}</span></p>
-                      <p className="mt-1.5 text-lg font-extrabold leading-none text-app-text">{totals.all.ml}{plus(totals.all)}<span className="ml-0.5 text-xs font-bold text-textMuted">ml</span></p>
+                      {totals.all.ml > 0
+                        ? <p className="mt-1.5 text-lg font-extrabold leading-none text-app-text">{totals.all.ml}{plus(totals.all)}<span className="ml-0.5 text-xs font-bold text-textMuted">ml{milkFeeds(entry) > 0 && ` - ${t('fd.feedCount', { n: milkFeeds(entry) })}`}</span></p>
+                        : <p className="mt-1.5 text-sm font-semibold leading-none text-textMuted">{t('fd.noMilkData')}</p>}
                       {/* sun share of the day vs night */}
                       {splitTotal && (
                         <>
@@ -194,13 +196,13 @@ export function FoodDiaryScreen() {
                   {solids.length > 0 && (
                     <div className={`${tile} flex-1`}>
                       <p className="flex items-center gap-1 text-peachDark"><Utensils size={14} strokeWidth={2.5} /><span className={tileLabel}>{t('fd.solid')}</span></p>
-                      <p className="mt-1.5 text-lg font-extrabold leading-none text-app-text">{solids.length}×</p>
+                      <p className="mt-1.5 text-lg font-extrabold leading-none text-app-text">{t(solids.length === 1 ? 'fd.mealCount1' : 'fd.mealCount', { n: solids.length })}</p>
                     </div>
                   )}
                   <div className={`${tile} flex-1`}>
                     <p className="flex items-center gap-1 text-peachDark"><Baby size={14} strokeWidth={2.5} /><span className={tileLabel}>{t('fd.poop')}</span></p>
                     <p className="mt-1.5 text-lg font-extrabold leading-none text-app-text">
-                      {entry.poop ? (entry.poop.times !== undefined ? `${entry.poop.times}×` : <Check size={18} strokeWidth={3} />) : '0×'}
+                      {entry.poop ? `${entry.poop.times ?? 1}×` : '0×'}
                     </p>
                   </div>
                 </button>
