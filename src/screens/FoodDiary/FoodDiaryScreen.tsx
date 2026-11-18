@@ -17,7 +17,8 @@ import type { LucideIcon } from 'lucide-react';
 import type { FoodEntry, MilkFields } from '../../types';
 import { VoiceConfirm } from '../../components/food/VoiceConfirm';
 import { VoiceFill } from '../../components/shared/VoiceFill';
-import { foodVoicePrompt, mergeVoiceFood, parseVoiceFood, type VoiceFood } from '../../lib/voiceFood';
+import { foodVoicePrompt, parseVoiceFood, type VoiceFood } from '../../lib/voiceFood';
+import { voiceDate } from '../../lib/voiceDate';
 import { cardShadow } from '../../components/shared/cardStyle';
 
 interface Row { name: string; parts: unknown[]; badges?: string[] }
@@ -60,11 +61,12 @@ export function FoodDiaryScreen() {
   // returns an error message key when the note cannot be used, the mic popup shows it
   function handleVoice(v: VoiceFood, said: string): UiKey | void {
     const today = new Date().toISOString().split('T')[0]; // same "today" as the form
-    if (v.date && v.date > today) return 'voice.futureDay';
-    const date = v.date ?? today;
+    const date = voiceDate(said, today); // the day Gemini was shown
+    if (date > today) return 'voice.futureDay';
+    if (v.date && v.date !== date) return 'voice.fail'; // Gemini saw another day than the one it answers for
     const old = entries.find(e => e.date === date);
-    if (v.deleteDay && !old) return 'voice.noDay';
-    const merged = v.deleteDay ? { id: date, date } : mergeVoiceFood(old, v, date);
+    if (v.day === null && !old) return 'voice.noDay';
+    const merged: FoodEntry = { id: date, date, ...v.day }; // the whole day comes from Gemini
     const empty = Object.keys(merged).length === 2; // nothing left but id and date
     if (empty && !old) return 'voice.nothing';
     setPending({ said, old, merged, del: empty }); // an old day with nothing left is deleted
@@ -97,7 +99,7 @@ export function FoodDiaryScreen() {
           <FoodDiaryForm onSave={handleSave} onCancel={handleCancel} />
         ) : (
           <div className="flex items-start gap-2">
-          <VoiceFill prompt={() => foodVoicePrompt(new Date().toISOString().split('T')[0], entries)} parse={parseVoiceFood} onResult={handleVoice} startRef={micRef} />
+          <VoiceFill prompt={said => { const today = new Date().toISOString().split('T')[0]; return foodVoicePrompt(voiceDate(said, today), today, entries); }} parse={parseVoiceFood} onResult={handleVoice} startRef={micRef} />
           {pending && <VoiceConfirm old={pending.old} merged={pending.merged} said={pending.said} del={pending.del} onRetry={retryVoice} onConfirm={confirmVoice} onCancel={() => setPending(null)} />}
           <button
             onClick={() => { remember(); setShowForm(true); }}

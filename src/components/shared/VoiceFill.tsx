@@ -6,7 +6,7 @@ import { callGemini } from '../../lib/gemini';
 import { useVoiceInput } from '../../hooks/useVoiceInput';
 
 interface Props<T> {
-  prompt: () => string; // system prompt that tells Gemini the JSON shape, built on each tap so it can hold today's date
+  prompt: (said: string) => string; // system prompt that tells Gemini the JSON shape, built for each note so it can hold the day and its data
   parse: (text: string) => T | null;
   onResult: (data: T, said: string) => UiKey | void; // a UiKey is an error message to show in the popup
   startRef?: { current: (() => void) | null }; // lets the parent start a new recording, for "record again"
@@ -16,7 +16,7 @@ interface Props<T> {
 export function VoiceFill<T>({ prompt, parse, onResult, startRef }: Props<T>) {
   const { t } = useLang();
   const { supported, start, modal } = useVoiceInput(async said => {
-    const res = await callGemini(prompt(), [{ role: 'user', parts: [{ text: said }] }]);
+    const res = await callGemini(prompt(said), [{ role: 'user', parts: [{ text: said }] }]);
     const data = res && parse(res.text);
     return data ? onResult(data, said) : 'voice.fail';
   });

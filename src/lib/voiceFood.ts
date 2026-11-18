@@ -4,70 +4,42 @@ import { dayMilksOf, splitDayMilks } from './dayMilks';
 import { foldTimes } from './foodForm';
 import { ALLERGIES, FOODS, POOP_COLORS, POOP_TEXTURES } from '../components/food/foodOptions';
 
-// what the form can take from a spoken note; every part is optional
-export interface VoiceEdit {
-  section: 'dayMilks' | 'solids';
-  index: number; // position of the record in the saved day, first = 0
-  remove?: boolean;
-  set?: Partial<SolidMeal> & MilkFields; // only the changed fields
-}
-export type VoiceSection = 'dayMilks' | 'night' | 'solids' | 'poop' | 'allergy';
-const SECTIONS: VoiceSection[] = ['dayMilks', 'night', 'solids', 'poop', 'allergy'];
-
+// Gemini gets the saved days and the note, and answers with the WHOLE new day. No edit rules on our side.
+export type VoiceDay = Omit<FoodEntry, 'id' | 'date'>;
 export interface VoiceFood {
-  deleteDay?: boolean; // remove the whole day note
-  edits?: VoiceEdit[]; // change or remove one record of a list
-  replace?: VoiceSection[]; // sections the speaker is correcting: they overwrite the day instead of adding to it
   date?: string; // "YYYY-MM-DD", the day the note is about; today when not said
-  dayMilks?: MilkFields[];
-  night?: MilkFields;
-  solids?: SolidMeal[];
-  poop?: PoopLog;
-  allergy?: string[];
+  day: VoiceDay | null; // the day after the note; null = delete the day
 }
 
-const RECENT_DAYS = 14;
+// a saved day in the same shape Gemini must answer with
+const dayJson = (e: FoodEntry) => ({
+  dayMilks: dayMilksOf(e).map(foldTimes),
+  ...(e.night ? { night: foldTimes(e.night) } : {}),
+  solids: solidsOf(e),
+  ...(e.poop ? { poop: e.poop } : {}),
+  ...(e.allergy?.length ? { allergy: e.allergy } : {}),
+});
 
-// the saved days, in the same shape Gemini must answer with, so it can fix one item inside a day
-export function recentDaysJson(entries: FoodEntry[], today: string): string {
-  const from = new Date(`${today}T00:00:00Z`);
-  from.setUTCDate(from.getUTCDate() - RECENT_DAYS);
-  const cut = from.toISOString().split('T')[0];
-  return JSON.stringify(
-    entries.filter(e => e.date >= cut).sort((a, b) => b.date.localeCompare(a.date)).map(e => ({
-      date: e.date,
-      dayMilks: dayMilksOf(e).map(foldTimes),
-      ...(e.night ? { night: foldTimes(e.night) } : {}),
-      solids: solidsOf(e),
-      ...(e.poop ? { poop: e.poop } : {}),
-      ...(e.allergy?.length ? { allergy: e.allergy } : {}),
-    })),
-  );
-}
-
-export const foodVoicePrompt = (today: string, entries: FoodEntry[] = []) => `You turn a short spoken note about a baby into diary data (Vietnamese or English, may have speech-to-text mistakes). The note can be tiny, like only one milk or only poop.
-Today is ${today}.
-Saved days (last ${RECENT_DAYS}), same shape as your answer: ${recentDaysJson(entries, today)}
-Reply with ONE JSON object only, no markdown. Leave out anything not said. Shape:
+export const foodVoicePrompt = (date: string, today: string, entries: FoodEntry[] = []) => {
+  const saved = entries.find(e => e.date === date);
+  return `You update a baby's food diary from a short spoken note (Vietnamese or English, may have speech-to-text mistakes). The note can be tiny, like only one milk or only poop.
+Today is ${today}. The note is about ${date}.
+Saved day ${date}: ${saved ? JSON.stringify(dayJson(saved)) : 'none'}
+Reply with ONE JSON object only, no markdown:
+{"date": "${date}", "day": the COMPLETE day after the note, or null to delete the whole day}
+"day" has this shape, leave out what is empty:
 {
- "date": "YYYY-MM-DD" (only if a day is said, like "hôm qua" = yesterday),
  "dayMilks": [{"momMl": number, "momWays": ["breast"|"bottle"], "formulaMl": number}],
  "night": {same as one dayMilks item},
  "solids": [{"foods": string[], "portion": string, "snack": boolean}],
  "poop": {"times": number, "colors": string[], "textures": string[], "note": string},
- "allergy": string[],
- "replace": string[],
- "deleteDay": boolean,
- "edits": [{"section": "dayMilks"|"solids", "index": number, "set": {only the changed fields of that record}, "remove": boolean}]
+ "allergy": string[]
 }
 Rules:
-- "replace": list the section names (dayMilks, night, solids, poop, allergy) that the speaker is CORRECTING or overwriting ("sửa lại", "nhầm", "đổi thành", "actually", "should be"). If they are just adding something new, leave "replace" out.
-- dayMilks and solids hold ONLY the NEW records to add ("thêm một cữ 500ml" = one item). NEVER copy the saved records into them.
-- To change or delete ONE record in dayMilks or solids (for example "bữa thịt kho là bữa phụ", "cữ sữa thứ hai là 80ml", "xóa bữa ăn dặm thứ 2"), use "edits" with the index of that record in the saved day (first = 0). "set" holds ONLY the changed fields. "remove": true deletes the record. Do NOT use "replace" for this, the other records stay as they are.
-- For night, poop and allergy, a fix goes in "replace" with the COMPLETE corrected section (copy it from the saved day, change what was said).
-- To DELETE a part ("xóa", "bỏ", "remove", "clear"), put its section name in "replace" and give it an empty value ([] for lists, {} for objects).
-- To delete a WHOLE day ("xóa ngày 2 tháng 11", "xóa cả ngày"), answer only {"date": ..., "deleteDay": true}. Do not list every section in "replace".
-- A note can be tiny (one section) or a whole day (all sections).
+- Start from the saved day above (none = an empty day). Copy EVERYTHING the note does not talk about, unchanged and in the same order.
+- Adding ("thêm một cữ 500ml") = append a new item to dayMilks or solids. Fixing ("sửa lại", "nhầm", "đổi thành", "bữa thịt kho là bữa phụ") = change only that item. Deleting ("xóa", "bỏ", "remove") = leave that item out.
+- night and poop are ONE record per day. If the speaker adds to them, add up the numbers and join the lists. If they correct them, replace the value.
+- "xóa cả ngày" = "day": null.
 - One dayMilks item per separate daytime milk feed. Night milk goes in "night". Amounts are in ml.
 - momMl = mom's milk, formulaMl = formula milk. momWays: breast (direct) and/or bottle.
 - solids: one item per meal. snack = true for a snack (bữa phụ). portion is free text like "50 ml" or "2 muỗng".
@@ -75,6 +47,7 @@ Rules:
 - poop colors only: ${Object.keys(POOP_COLORS).join(', ')}. textures only: ${POOP_TEXTURES.join(', ')}.
 - allergy: use these keys when they match: ${ALLERGIES.join(', ')}. Otherwise free text.
 - Ignore clock times, the diary has no time field.`;
+};
 
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.round(v) : undefined);
 const strs = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.trim() !== '').map(x => x.trim()) : []);
@@ -82,13 +55,42 @@ const only = <T extends string>(v: unknown, allowed: readonly T[]) => strs(v).fi
 
 function milk(v: unknown): MilkFields {
   const o = (v && typeof v === 'object' ? v : {}) as Record<string, unknown>;
-  const momMl = num(o.momMl);
-  const formulaMl = num(o.formulaMl);
+  const momMl = num(o.momMl), formulaMl = num(o.formulaMl);
+  const momTimes = num(o.momTimes), formulaTimes = num(o.formulaTimes); // older entries with times and no ml: keep them
   const momWays = only(o.momWays, ['breast', 'bottle'] as const);
-  return { ...(momMl ? { momMl } : {}), ...(momMl && momWays.length ? { momWays } : {}), ...(formulaMl ? { formulaMl } : {}) };
+  return {
+    ...(momTimes ? { momTimes } : {}), ...(momMl ? { momMl } : {}), ...((momMl || momTimes) && momWays.length ? { momWays } : {}),
+    ...(formulaTimes ? { formulaTimes } : {}), ...(formulaMl ? { formulaMl } : {}),
+  };
 }
 
-// Gemini text -> safe form data. null if it is not usable JSON or has nothing in it.
+function parseDay(d: Record<string, unknown>): VoiceDay {
+  const dayMilks = (Array.isArray(d.dayMilks) ? d.dayMilks : []).map(milk).filter(m => Object.keys(m).length);
+  const night = milk(d.night);
+  const solids = (Array.isArray(d.solids) ? d.solids : []).flatMap((s): SolidMeal[] => {
+    const r = (s && typeof s === 'object' ? s : {}) as Record<string, unknown>;
+    const foods = strs(r.foods);
+    const portion = typeof r.portion === 'string' ? r.portion.trim() : '';
+    return foods.length ? [{ foods, ...(portion ? { portion } : {}), ...(r.snack === true ? { snack: true } : {}) }] : [];
+  });
+  const p = (d.poop && typeof d.poop === 'object' ? d.poop : {}) as Record<string, unknown>;
+  const times = num(p.times);
+  const colors = only(p.colors, Object.keys(POOP_COLORS) as (keyof typeof POOP_COLORS)[]);
+  const textures = only(p.textures, POOP_TEXTURES);
+  const note = typeof p.note === 'string' ? p.note.trim() : '';
+  const poop: PoopLog = { ...(times ? { times } : {}), ...(colors.length ? { colors } : {}), ...(textures.length ? { textures } : {}), ...(note ? { note } : {}) };
+  const allergy = [...new Set(strs(d.allergy))];
+  return {
+    ...splitDayMilks(dayMilks),
+    ...(Object.keys(night).length ? { night } : {}),
+    ...(solids.length ? { solids } : {}),
+    ...(Object.keys(poop).length ? { poop } : {}),
+    ...(allergy.length ? { allergy } : {}),
+  };
+}
+
+// Gemini text -> a safe day. null if it is not usable JSON.
+// "day" must be there: an object (may be empty) or null. A missing "day" is a bad answer, not a delete.
 export function parseVoiceFood(text: string): VoiceFood | null {
   let o: Record<string, unknown>;
   try {
@@ -97,112 +99,10 @@ export function parseVoiceFood(text: string): VoiceFood | null {
   } catch {
     return null;
   }
-  const out: VoiceFood = {};
-  if (typeof o.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(o.date)) out.date = o.date;
-  const dayMilks = (Array.isArray(o.dayMilks) ? o.dayMilks : []).map(milk).filter(m => Object.keys(m).length);
-  if (dayMilks.length) out.dayMilks = dayMilks;
-  const night = milk(o.night);
-  if (Object.keys(night).length) out.night = night;
-  const solids = (Array.isArray(o.solids) ? o.solids : []).flatMap((s): SolidMeal[] => {
-    const r = (s && typeof s === 'object' ? s : {}) as Record<string, unknown>;
-    const foods = strs(r.foods);
-    const portion = typeof r.portion === 'string' ? r.portion.trim() : '';
-    return foods.length ? [{ foods, ...(portion ? { portion } : {}), ...(r.snack === true ? { snack: true } : {}) }] : [];
-  });
-  if (solids.length) out.solids = solids;
-  const p = (o.poop && typeof o.poop === 'object' ? o.poop : {}) as Record<string, unknown>;
-  const times = num(p.times);
-  const colors = only(p.colors, Object.keys(POOP_COLORS) as (keyof typeof POOP_COLORS)[]);
-  const textures = only(p.textures, POOP_TEXTURES);
-  const note = typeof p.note === 'string' ? p.note.trim() : '';
-  if (times || colors.length || textures.length || note) {
-    out.poop = { ...(times ? { times } : {}), ...(colors.length ? { colors } : {}), ...(textures.length ? { textures } : {}), ...(note ? { note } : {}) };
-  }
-  const edits = (Array.isArray(o.edits) ? o.edits : []).flatMap((x): VoiceEdit[] => {
-    const e = (x && typeof x === 'object' ? x : {}) as Record<string, unknown>;
-    const s = (e.set && typeof e.set === 'object' ? e.set : {}) as Record<string, unknown>;
-    if ((e.section !== 'dayMilks' && e.section !== 'solids') || !Number.isInteger(e.index) || (e.index as number) < 0) return [];
-    const set: VoiceEdit['set'] = {};
-    const momMl = num(s.momMl), formulaMl = num(s.formulaMl), ways = only(s.momWays, ['breast', 'bottle'] as const), foods = strs(s.foods);
-    if (momMl) set.momMl = momMl;
-    if (formulaMl) set.formulaMl = formulaMl;
-    if (ways.length) set.momWays = ways;
-    if (foods.length) set.foods = foods;
-    if (typeof s.portion === 'string') set.portion = s.portion.trim();
-    if (typeof s.snack === 'boolean') set.snack = s.snack;
-    if (e.remove !== true && Object.keys(set).length === 0) return [];
-    return [{ section: e.section, index: e.index as number, ...(e.remove === true ? { remove: true } : {}), set }];
-  });
-  if (edits.length) out.edits = edits;
-  const allergy = strs(o.allergy);
-  if (allergy.length) out.allergy = allergy;
-  // a replaced part with nothing in it means "delete this part"
-  const replace = only(o.replace, SECTIONS);
-  const isEmpty = (x: unknown) => !x || (Array.isArray(x) ? x.length === 0 : Object.keys(x).length === 0);
-  // every section replaced by nothing = the whole day goes
-  if (o.deleteDay === true || (SECTIONS.every(k => replace.includes(k)) && SECTIONS.every(k => isEmpty(out[k])))) out.deleteDay = true;
-  const empty = { dayMilks: [], night: {}, solids: [], poop: {}, allergy: [] };
-  for (const k of replace) (out as Record<string, unknown>)[k] ??= empty[k];
-  if (replace.length) out.replace = replace;
-  return SECTIONS.some(k => out[k] !== undefined) || out.edits || out.deleteDay ? out : null;
-}
-
-const uniq = <T,>(a: T[]) => [...new Set(a)];
-const sumKey = (a: number | undefined, b: number | undefined) => (a === undefined && b === undefined ? undefined : (a ?? 0) + (b ?? 0));
-
-// Gemini sometimes sends the saved records back with the new one at the end. If the saved ones come first, unchanged, cut them off.
-const stable = (x: unknown) => JSON.stringify(x, (_, v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).sort()) : v));
-const withoutCopy = <R,>(saved: R[], added: R[]): R[] =>
-  saved.length > 0 && added.length > saved.length && saved.every((r, i) => stable(r) === stable(added[i])) ? added.slice(saved.length) : added;
-
-const pickMilkSet = (s: NonNullable<VoiceEdit['set']>): MilkFields => ({
-  ...(s.momMl ? { momMl: s.momMl } : {}), ...(s.formulaMl ? { formulaMl: s.formulaMl } : {}), ...(s.momWays ? { momWays: s.momWays } : {}),
-});
-function applySolid(m: SolidMeal, s: NonNullable<VoiceEdit['set']>): SolidMeal {
-  const { portion, snack, ...rest } = { ...m, ...(s.foods ? { foods: s.foods } : {}), ...(s.portion !== undefined ? { portion: s.portion } : {}), ...(s.snack !== undefined ? { snack: s.snack } : {}) };
-  return { ...rest, ...(portion ? { portion } : {}), ...(snack ? { snack: true } : {}) }; // "" and false clear the field
-}
-
-// A note ADDS to the day by default, it never wipes it. Sections in v.replace are overwritten instead.
-// When adding:
-// - milk feeds and solid meals are added as new records (a new feed was said)
-// - night milk, poop times and ml are added up; colors, textures, reactions are joined
-// The whole entry is rebuilt like the form does, so older shapes (foods, momTimes) are carried over.
-export function mergeVoiceFood(old: FoodEntry | undefined, v: VoiceFood, date: string): FoodEntry {
-  const keep = (k: VoiceSection) => !v.replace?.includes(k);
-  // edits hit the saved records by position (the same list Gemini was shown); a position that does not exist is ignored
-  const fix = <R,>(list: R[], section: VoiceEdit['section'], apply: (r: R, set: NonNullable<VoiceEdit['set']>) => R) =>
-    list.flatMap((r, i): R[] => {
-      const e = v.edits?.find(x => x.section === section && x.index === i);
-      return !e ? [r] : e.remove ? [] : [apply(r, e.set ?? {})];
-    });
-  const oldDays = old && keep('dayMilks') ? dayMilksOf(old) : [];
-  const oldSolids = old && keep('solids') ? solidsOf(old) : [];
-  const days = [...fix(oldDays, 'dayMilks', (m, set) => ({ ...m, ...pickMilkSet(set) })), ...withoutCopy(oldDays, v.dayMilks ?? [])];
-  const solids = [...fix(oldSolids, 'solids', applySolid), ...withoutCopy(oldSolids, v.solids ?? [])];
-  let night = keep('night') ? old?.night : undefined;
-  if (v.night) {
-    const momMl = sumKey(night?.momMl, v.night.momMl);
-    const formulaMl = sumKey(night?.formulaMl, v.night.formulaMl);
-    const momWays = uniq([...(night?.momWays ?? []), ...(v.night.momWays ?? [])]);
-    night = { ...night, ...(momMl !== undefined ? { momMl } : {}), ...(formulaMl !== undefined ? { formulaMl } : {}), ...(momWays.length ? { momWays } : {}) };
-  }
-  let poop = keep('poop') ? old?.poop : undefined;
-  if (v.poop) {
-    const times = sumKey(poop?.times, v.poop.times);
-    const colors = uniq([...(poop?.colors ?? []), ...(v.poop.colors ?? [])]);
-    const textures = uniq([...(poop?.textures ?? []), ...(v.poop.textures ?? [])]);
-    const note = [poop?.note, v.poop.note].filter(Boolean).join(', ');
-    poop = { ...(times !== undefined ? { times } : {}), ...(colors.length ? { colors } : {}), ...(textures.length ? { textures } : {}), ...(note ? { note } : {}) };
-  }
-  const allergy = uniq([...(keep('allergy') ? old?.allergy ?? [] : []), ...(v.allergy ?? [])]);
+  const { day, date } = o;
+  if (day !== null && (typeof day !== 'object' || Array.isArray(day))) return null;
   return {
-    id: date,
-    date,
-    ...splitDayMilks(days),
-    ...(night && Object.keys(night).length ? { night } : {}),
-    ...(poop && Object.keys(poop).length ? { poop } : {}),
-    ...(allergy.length ? { allergy } : {}),
-    ...(solids.length ? { solids } : {}),
+    ...(typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date) ? { date } : {}),
+    day: day === null ? null : parseDay(day as Record<string, unknown>),
   };
 }
