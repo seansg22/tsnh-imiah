@@ -58,7 +58,7 @@ export function useVoiceInput(handle: Handler) {
         if (e.error === 'no-speech' || e.error === 'aborted') return; // just silence: onend starts the next session
         rec.current = null; // mic blocked, no network...: stop for real
         setState('idle');
-        setError('voice.fail');
+        setError(e.error === 'not-allowed' || e.error === 'service-not-allowed' ? 'voice.denied' : 'voice.fail');
       };
       r.onend = () => {
         if (rec.current !== r) return; // cancelled or failed
@@ -93,10 +93,12 @@ export function useVoiceInput(handle: Handler) {
             {text && <p className="text-sm text-textMuted italic [overflow-wrap:anywhere]">"{text}"</p>}
             <div className="flex gap-2">
               <button onClick={() => setError(null)} className="flex-1 py-2.5 rounded-xl border-2 border-peachLight text-sm font-bold text-app-text active:bg-cream">{t('voice.close')}</button>
-              <button onClick={() => { setError(null); start(); }} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-peach text-sm font-bold text-white active:opacity-80">
+              {error === 'voice.denied' ? ( // iOS only asks again after a reload
+                <button onClick={() => location.reload()} className="flex-1 py-2.5 rounded-xl bg-peach text-sm font-bold text-white active:opacity-80">{t('voice.reload')}</button>
+              ) : <button onClick={() => { setError(null); start(); }} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-peach text-sm font-bold text-white active:opacity-80">
                 <Mic size={14} strokeWidth={2.5} />
                 {t('voice.retry')}
-              </button>
+              </button>}
             </div>
           </div>
         </div>,
