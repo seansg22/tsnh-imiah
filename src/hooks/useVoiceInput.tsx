@@ -32,6 +32,7 @@ export function useVoiceInput(handle: Handler) {
   const rec = useRef<Recognition | null>(null);
   const [dbg, setDbg] = useState(''); // ponytail: TEMPORARY debug line, remove once the iOS problem is found
   const stopping = useRef(false); // the user tapped Done
+  const forceDone = useRef<(() => void) | null>(null); // ends the note by hand when the browser never fires onend
 
   async function send(said: string) {
     if (!said.trim()) return setState('idle');
@@ -46,6 +47,7 @@ export function useVoiceInput(handle: Handler) {
   function start() {
     if (state !== 'idle' || !Speech) return;
     let done = ''; // text of the sessions that already ended
+    let cur = ''; // text of the running session
     let retries = 0; // fresh sessions started because the last one heard nothing
     const t0 = Date.now();
     const log = (what: string) => setDbg(d => `${d}${d ? ' | ' : ''}${((Date.now() - t0) / 1000).toFixed(1)}s ${what}`.slice(-600));
@@ -56,7 +58,7 @@ export function useVoiceInput(handle: Handler) {
       r.lang = lang === 'vi' ? 'vi-VN' : 'en-US';
       r.interimResults = true;
       r.continuous = true;
-      let cur = '';
+      cur = '';
       let heard = false; // this session got speech or text
       let watch: ReturnType<typeof setTimeout> | undefined;
       for (const n of ['start', 'audiostart', 'soundstart', 'speechstart', 'speechend', 'soundend', 'audioend', 'nomatch']) {
@@ -82,8 +84,10 @@ export function useVoiceInput(handle: Handler) {
         clearTimeout(watch);
         if (rec.current !== r) return; // cancelled or failed
         done = `${done} ${cur}`.trim();
-        if (stopping.current) void send(done);
-        else run();
+        if (stopping.current) {
+          rec.current = null;
+          void send(done);
+        } else run();
       };
       rec.current = r;
       try {
@@ -105,10 +109,23 @@ export function useVoiceInput(handle: Handler) {
         setError('voice.fail');
       }
     };
+    forceDone.current = () => { // a stuck session: use what was heard so far
+      const r = rec.current;
+      rec.current = null;
+      r?.abort();
+      void send(`${done} ${cur}`.trim());
+    };
     setError(null);
     setText('');
     setState('listening');
     run();
+  }
+
+  function finish() {
+    stopping.current = true;
+    const r = rec.current;
+    r?.stop();
+    setTimeout(() => { if (r && rec.current === r) forceDone.current?.(); }, 1500); // onend never came
   }
 
   function cancel() {
@@ -156,7 +173,7 @@ export function useVoiceInput(handle: Handler) {
             {listening && (
               <div className="flex gap-2">
                 <button onClick={cancel} className="flex-1 py-2.5 rounded-xl border-2 border-peachLight text-sm font-bold text-app-text active:bg-cream">{t('confirm.cancel')}</button>
-                <button onClick={() => { stopping.current = true; rec.current?.stop(); }} className="flex-1 py-2.5 rounded-xl bg-peach text-sm font-bold text-white active:opacity-80">{t('voice.done')}</button>
+                <button onClick={finish} className="flex-1 py-2.5 rounded-xl bg-peach text-sm font-bold text-white active:opacity-80">{t('voice.done')}</button>
               </div>
             )}
           </div>
