@@ -10,7 +10,7 @@ interface Recognition {
   onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
   onerror: ((e: { error: string }) => void) | null;
   onend: (() => void) | null;
-  start: () => void; stop: () => void;
+  start: () => void; stop: () => void; abort: () => void;
 }
 type RecognitionCtor = new () => Recognition;
 const Ctor = (window as unknown as { SpeechRecognition?: RecognitionCtor; webkitSpeechRecognition?: RecognitionCtor });
@@ -46,6 +46,7 @@ export function useVoiceInput(handle: Handler) {
   function start() {
     if (state !== 'idle' || !Speech) return;
     let done = ''; // text of the sessions that already ended
+    let retries = 0; // fresh sessions started because the last one heard nothing
     const t0 = Date.now();
     const log = (what: string) => setDbg(d => `${d}${d ? ' | ' : ''}${((Date.now() - t0) / 1000).toFixed(1)}s ${what}`.slice(-600));
     setDbg('');
@@ -56,16 +57,20 @@ export function useVoiceInput(handle: Handler) {
       r.interimResults = true;
       r.continuous = true;
       let cur = '';
+      let heard = false; // this session got speech or text
+      let watch: ReturnType<typeof setTimeout> | undefined;
       for (const n of ['start', 'audiostart', 'soundstart', 'speechstart', 'speechend', 'soundend', 'audioend', 'nomatch']) {
-        (r as unknown as Record<string, () => void>)[`on${n}`] = () => log(n);
+        (r as unknown as Record<string, () => void>)[`on${n}`] = () => { if (n === 'speechstart') heard = true; log(n); };
       }
       r.onresult = e => {
+        heard = true;
         log(`result${e.results.length}`);
         cur = Array.from(e.results).map(x => x[0].transcript).join(' ');
         setText(`${done} ${cur}`.trim());
       };
       r.onerror = e => {
         log(`ERROR ${e.error}`);
+        clearTimeout(watch);
         if (e.error === 'no-speech' || e.error === 'aborted') return; // just silence: onend starts the next session
         rec.current = null; // mic blocked, no network...: stop for real
         shared = null; // next time starts with a fresh object
@@ -74,6 +79,7 @@ export function useVoiceInput(handle: Handler) {
       };
       r.onend = () => {
         log(rec.current === r ? 'end' : 'end(cancelled)');
+        clearTimeout(watch);
         if (rec.current !== r) return; // cancelled or failed
         done = `${done} ${cur}`.trim();
         if (stopping.current) void send(done);
@@ -82,6 +88,16 @@ export function useVoiceInput(handle: Handler) {
       rec.current = r;
       try {
         r.start();
+        // iOS can start a session that never hears anything (seen on the second note): drop it and start a fresh one
+        watch = setTimeout(() => {
+          if (rec.current !== r || heard || done || retries >= 3) return;
+          retries++;
+          log('heard nothing, new session');
+          rec.current = null;
+          shared = null;
+          r.abort();
+          run();
+        }, 3000);
       } catch { // still stopping from the last note
         rec.current = null;
         shared = null;
