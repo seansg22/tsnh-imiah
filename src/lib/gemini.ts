@@ -34,7 +34,7 @@ let modelIndex = 0;
 
 export interface GeminiContent {
   role: string;
-  parts: ({ text: string } | { inlineData: { mimeType: string; data: string } })[];
+  parts: { text: string }[];
 }
 
 export interface GeminiResult {
@@ -152,20 +152,4 @@ export async function callGemini(
   } finally {
     ctrl.abort(); // cancel every request still in flight
   }
-}
-
-// Audio -> text, for where the browser's own speech API is not good enough (iPhone). '' when nothing was understood.
-export async function transcribe(blob: Blob): Promise<string> {
-  if (!blob.size) return '';
-  const data = await new Promise<string>((ok, no) => {
-    const r = new FileReader();
-    r.onload = () => ok(String(r.result).split(',')[1]);
-    r.onerror = () => no(r.error);
-    r.readAsDataURL(blob);
-  });
-  const res = await callGemini(
-    'Transcribe the speech exactly as spoken, in the language spoken (Vietnamese, English or Chinese). Output only the words, nothing else. If there is no speech, output nothing.',
-    [{ role: 'user', parts: [{ inlineData: { mimeType: blob.type.split(';')[0] || 'audio/mp4', data } }] }],
-  );
-  return res && res.text !== 'No response received.' ? res.text.trim() : '';
 }

@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { Mic, Loader2 } from 'lucide-react';
 import { useLang } from '../i18n/langContext';
 import type { UiKey } from '../i18n/ui';
-import { transcribe } from '../lib/gemini';
 
 // the browser API has no type in lib.dom yet, so only what we use
 interface Recognition {
@@ -16,10 +15,8 @@ interface Recognition {
 type RecognitionCtor = new () => Recognition;
 const Ctor = (window as unknown as { SpeechRecognition?: RecognitionCtor; webkitSpeechRecognition?: RecognitionCtor });
 const Speech = Ctor.SpeechRecognition ?? Ctor.webkitSpeechRecognition;
-// iPhone: the speech API asks for the mic again on every note, and iOS dictation is weak for Vietnamese.
-// So there we record audio ourselves and let Gemini write it down. The mic stream is kept open, so iOS asks once.
-const isIPhone = /iPhone/.test(navigator.userAgent);
-let micStream: MediaStream | null = null; // shared by every voice button, so moving to another page does not ask again
+// iPhone drops the mic grant after one voice note, so there the user talks with the keyboard's own mic key instead
+const keyboardDictation = /iPhone/.test(navigator.userAgent);
 
 type Handler = (said: string) => Promise<UiKey | void> | UiKey | void; // a UiKey is an error message for the popup
 
@@ -34,8 +31,7 @@ export function useVoiceInput(handle: Handler) {
   const [error, setError] = useState<UiKey | null>(null);
   const rec = useRef<Recognition | null>(null);
   const stopping = useRef(false); // the user tapped Done
-  const recorder = useRef<MediaRecorder | null>(null); // iPhone only
-  const [box, setBox] = useState<string | null>(null); // iPhone, mic blocked: a text box to type or use the keyboard mic in. null = closed
+  const [box, setBox] = useState<string | null>(null); // iPhone: the text box the keyboard mic types into, null = closed
 
   async function send(said: string) {
     if (!said.trim()) return setState('idle');
@@ -45,38 +41,11 @@ export function useVoiceInput(handle: Handler) {
     if (problem) setError(problem);
   }
 
-  // iPhone: record until the user taps Done, then Gemini turns the audio into text and it goes the usual way.
-  async function record() {
-    setError(null);
-    setText('');
-    try {
-      if (!micStream?.getAudioTracks().some(x => x.readyState === 'live')) micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch {
-      setBox(''); // blocked: the user can still type, or use the keyboard mic
-      return;
-    }
-    const mr = new MediaRecorder(micStream);
-    const chunks: Blob[] = [];
-    mr.ondataavailable = e => chunks.push(e.data);
-    mr.onstop = async () => {
-      if (recorder.current !== mr) return; // cancelled
-      recorder.current = null;
-      setState('thinking');
-      const said = await transcribe(new Blob(chunks, { type: mr.mimeType })).catch(() => '');
-      setText(said);
-      if (!said) { setState('idle'); setError('voice.fail'); return; }
-      await send(said);
-    };
-    recorder.current = mr;
-    mr.start();
-    setState('listening');
-  }
-
   // Listens until the user taps Done. The browser ends a session by itself after a pause (or about a minute),
   // so each time that happens a new session starts and the text so far is kept.
   function start() {
     if (state !== 'idle') return;
-    if (isIPhone) { void record(); return; }
+    if (keyboardDictation) { setError(null); setBox(''); return; }
     if (!Speech) return;
     let done = ''; // text of the sessions that already ended
     stopping.current = false;
@@ -112,9 +81,6 @@ export function useVoiceInput(handle: Handler) {
   }
 
   function cancel() {
-    const mr = recorder.current;
-    recorder.current = null;
-    if (mr?.state === 'recording') mr.stop();
     const r = rec.current;
     rec.current = null;
     r?.stop();
@@ -180,7 +146,7 @@ export function useVoiceInput(handle: Handler) {
             {listening && (
               <div className="flex gap-2">
                 <button onClick={cancel} className="flex-1 py-2.5 rounded-xl border-2 border-peachLight text-sm font-bold text-app-text active:bg-cream">{t('confirm.cancel')}</button>
-                <button onClick={() => { stopping.current = true; rec.current?.stop(); recorder.current?.stop(); }} className="flex-1 py-2.5 rounded-xl bg-peach text-sm font-bold text-white active:opacity-80">{t('voice.done')}</button>
+                <button onClick={() => { stopping.current = true; rec.current?.stop(); }} className="flex-1 py-2.5 rounded-xl bg-peach text-sm font-bold text-white active:opacity-80">{t('voice.done')}</button>
               </div>
             )}
           </div>
@@ -190,5 +156,5 @@ export function useVoiceInput(handle: Handler) {
     </>
   );
 
-  return { supported: isIPhone || !!Speech, start, modal };
+  return { supported: keyboardDictation || !!Speech, start, modal };
 }
