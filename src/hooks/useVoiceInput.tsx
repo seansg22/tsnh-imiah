@@ -30,6 +30,7 @@ export function useVoiceInput(handle: Handler) {
   const [text, setText] = useState('');
   const [error, setError] = useState<UiKey | null>(null);
   const rec = useRef<Recognition | null>(null);
+  const [dbg, setDbg] = useState(''); // ponytail: TEMPORARY debug line, remove once the iOS problem is found
   const stopping = useRef(false); // the user tapped Done
 
   async function send(said: string) {
@@ -45,6 +46,9 @@ export function useVoiceInput(handle: Handler) {
   function start() {
     if (state !== 'idle' || !Speech) return;
     let done = ''; // text of the sessions that already ended
+    const t0 = Date.now();
+    const log = (what: string) => setDbg(d => `${d}${d ? ' | ' : ''}${((Date.now() - t0) / 1000).toFixed(1)}s ${what}`.slice(-600));
+    setDbg('');
     stopping.current = false;
     const run = () => {
       const r = (shared ??= new Speech());
@@ -52,11 +56,16 @@ export function useVoiceInput(handle: Handler) {
       r.interimResults = true;
       r.continuous = true;
       let cur = '';
+      for (const n of ['start', 'audiostart', 'soundstart', 'speechstart', 'speechend', 'soundend', 'audioend', 'nomatch']) {
+        (r as unknown as Record<string, () => void>)[`on${n}`] = () => log(n);
+      }
       r.onresult = e => {
+        log(`result${e.results.length}`);
         cur = Array.from(e.results).map(x => x[0].transcript).join(' ');
         setText(`${done} ${cur}`.trim());
       };
       r.onerror = e => {
+        log(`ERROR ${e.error}`);
         if (e.error === 'no-speech' || e.error === 'aborted') return; // just silence: onend starts the next session
         rec.current = null; // mic blocked, no network...: stop for real
         shared = null; // next time starts with a fresh object
@@ -64,6 +73,7 @@ export function useVoiceInput(handle: Handler) {
         setError(e.error === 'not-allowed' || e.error === 'service-not-allowed' ? 'voice.denied' : 'voice.fail');
       };
       r.onend = () => {
+        log(rec.current === r ? 'end' : 'end(cancelled)');
         if (rec.current !== r) return; // cancelled or failed
         done = `${done} ${cur}`.trim();
         if (stopping.current) void send(done);
@@ -101,6 +111,7 @@ export function useVoiceInput(handle: Handler) {
           <div role="alertdialog" aria-modal="true" className="w-full max-w-[320px] rounded-2xl bg-white p-5 shadow-xl space-y-3" onClick={e => e.stopPropagation()}>
             <p className="text-base font-extrabold text-red-500">{t(error)}</p>
             {text && <p className="text-sm text-textMuted italic [overflow-wrap:anywhere]">"{text}"</p>}
+            <p className="text-[10px] leading-tight font-mono text-textMuted [overflow-wrap:anywhere]">{dbg}</p>
             <div className="flex gap-2">
               <button onClick={() => setError(null)} className="flex-1 py-2.5 rounded-xl border-2 border-peachLight text-sm font-bold text-app-text active:bg-cream">{t('voice.close')}</button>
               {error === 'voice.denied' ? ( // iOS only asks again after a reload
@@ -125,6 +136,7 @@ export function useVoiceInput(handle: Handler) {
             </div>
             <p className="text-base font-extrabold text-app-text">{t(listening ? 'voice.listening' : 'voice.thinking')}</p>
             <p className="min-h-10 text-sm text-textMuted italic [overflow-wrap:anywhere]">{text && `"${text}"`}</p>
+            <p className="text-[10px] leading-tight text-left font-mono text-textMuted [overflow-wrap:anywhere]">{dbg}</p>
             {listening && (
               <div className="flex gap-2">
                 <button onClick={cancel} className="flex-1 py-2.5 rounded-xl border-2 border-peachLight text-sm font-bold text-app-text active:bg-cream">{t('confirm.cancel')}</button>
