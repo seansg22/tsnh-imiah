@@ -30,6 +30,7 @@ body {
 .fade-in {
   animation: fadeIn 0.25s ease-out both;
 }
+.resumed .fade-in { animation: none; } /* after the iPhone mic reload */
 
 /* AI advice loading animation */
 @keyframes adviceOrbit {

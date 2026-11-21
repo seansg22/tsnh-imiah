@@ -1,6 +1,7 @@
 import { getFeeding } from '../../constants/babyDefaults';
 import { pageBg } from '../../components/shared/cardStyle';
 import { useVoiceInput } from '../../hooks/useVoiceInput';
+import { useKeptState } from '../../lib/reloadKeep';
 import { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Check, Copy, Mic, RefreshCw, Send, Sparkles, Trash2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -40,7 +41,7 @@ export function AIScreen() {
   const [messages, setMessages] = useLocalStorage<Message[]>('ai-messages', []);
   const [pendingNotes, setPendingNotes] = useLocalStorage<Message[][]>('ai-pending-notes', []);
   const noting = useRef(false);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useKeptState('ai-input', ''); // typed text survives the iPhone mic reload
   const [loading, setLoading] = useState(false);
   // Transient "retrying..." status shown next to the loading indicator. Never added to
   // `messages`, it must not be persisted or sent back to the AI as conversation history.
