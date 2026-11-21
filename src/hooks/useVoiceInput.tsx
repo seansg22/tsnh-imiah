@@ -15,6 +15,8 @@ interface Recognition {
 type RecognitionCtor = new () => Recognition;
 const Ctor = (window as unknown as { SpeechRecognition?: RecognitionCtor; webkitSpeechRecognition?: RecognitionCtor });
 const Speech = Ctor.SpeechRecognition ?? Ctor.webkitSpeechRecognition;
+// One object for every session and every voice button: iOS may count a new object as a new mic request
+let shared: Recognition | null = null;
 
 type Handler = (said: string) => Promise<UiKey | void> | UiKey | void; // a UiKey is an error message for the popup
 
@@ -45,7 +47,7 @@ export function useVoiceInput(handle: Handler) {
     let done = ''; // text of the sessions that already ended
     stopping.current = false;
     const run = () => {
-      const r = new Speech();
+      const r = (shared ??= new Speech());
       r.lang = lang === 'vi' ? 'vi-VN' : 'en-US';
       r.interimResults = true;
       r.continuous = true;
@@ -57,6 +59,7 @@ export function useVoiceInput(handle: Handler) {
       r.onerror = e => {
         if (e.error === 'no-speech' || e.error === 'aborted') return; // just silence: onend starts the next session
         rec.current = null; // mic blocked, no network...: stop for real
+        shared = null; // next time starts with a fresh object
         setState('idle');
         setError(e.error === 'not-allowed' || e.error === 'service-not-allowed' ? 'voice.denied' : 'voice.fail');
       };
@@ -67,7 +70,14 @@ export function useVoiceInput(handle: Handler) {
         else run();
       };
       rec.current = r;
-      r.start();
+      try {
+        r.start();
+      } catch { // still stopping from the last note
+        rec.current = null;
+        shared = null;
+        setState('idle');
+        setError('voice.fail');
+      }
     };
     setError(null);
     setText('');
