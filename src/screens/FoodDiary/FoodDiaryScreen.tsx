@@ -19,7 +19,6 @@ import { VoiceConfirm } from '../../components/food/VoiceConfirm';
 import { VoiceFill } from '../../components/shared/VoiceFill';
 import { foodVoicePrompt, parseVoiceFood, type VoiceFood } from '../../lib/voiceFood';
 import { voiceDate } from '../../lib/voiceDate';
-import { useKeptState } from '../../lib/reloadKeep';
 import { cardShadow } from '../../components/shared/cardStyle';
 
 interface Row { name: string; parts: unknown[]; badges?: string[] }
@@ -32,7 +31,7 @@ export function FoodDiaryScreen() {
   const [showForm, setShowForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState<FoodEntry | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [openIds, setOpenIds] = useKeptState<string[]>('fd-open', []); // cards showing the detail, the rest show the summary
+  const [openIds, setOpenIds] = useState<string[]>([]); // cards showing the detail, the rest show the summary
   const toggle = (id: string) => setOpenIds(ids => (ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]));
 
   const birthDate = state.babyProfile?.birthDate ?? '';
