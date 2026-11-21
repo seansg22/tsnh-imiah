@@ -121,17 +121,16 @@ export function useVoiceInput(handle: Handler) {
     run();
   }
 
+  // abort() instead of stop(): on iOS the next note heard nothing after a graceful stop. The text heard so far is used.
   function finish() {
     stopping.current = true;
-    const r = rec.current;
-    r?.stop();
-    setTimeout(() => { if (r && rec.current === r) forceDone.current?.(); }, 1500); // onend never came
+    forceDone.current?.();
   }
 
   function cancel() {
     const r = rec.current;
     rec.current = null;
-    r?.stop();
+    r?.abort();
     setState('idle');
   }
 
