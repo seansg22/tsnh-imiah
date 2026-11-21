@@ -10,13 +10,11 @@ interface Recognition {
   onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
   onerror: ((e: { error: string }) => void) | null;
   onend: (() => void) | null;
-  start: () => void; stop: () => void; abort: () => void;
+  start: () => void; stop: () => void;
 }
 type RecognitionCtor = new () => Recognition;
 const Ctor = (window as unknown as { SpeechRecognition?: RecognitionCtor; webkitSpeechRecognition?: RecognitionCtor });
 const Speech = Ctor.SpeechRecognition ?? Ctor.webkitSpeechRecognition;
-// One object for every session and every voice button: iOS may count a new object as a new mic request
-let shared: Recognition | null = null;
 
 type Handler = (said: string) => Promise<UiKey | void> | UiKey | void; // a UiKey is an error message for the popup
 
@@ -30,9 +28,7 @@ export function useVoiceInput(handle: Handler) {
   const [text, setText] = useState('');
   const [error, setError] = useState<UiKey | null>(null);
   const rec = useRef<Recognition | null>(null);
-  const [dbg, setDbg] = useState(''); // ponytail: TEMPORARY debug line, remove once the iOS problem is found
   const stopping = useRef(false); // the user tapped Done
-  const forceDone = useRef<(() => void) | null>(null); // ends the note by hand when the browser never fires onend
 
   async function send(said: string) {
     if (!said.trim()) return setState('idle');
@@ -47,73 +43,31 @@ export function useVoiceInput(handle: Handler) {
   function start() {
     if (state !== 'idle' || !Speech) return;
     let done = ''; // text of the sessions that already ended
-    let cur = ''; // text of the running session
-    let retries = 0; // fresh sessions started because the last one heard nothing
-    const t0 = Date.now();
-    const log = (what: string) => setDbg(d => `${d}${d ? ' | ' : ''}${((Date.now() - t0) / 1000).toFixed(1)}s ${what}`.slice(-600));
-    setDbg('');
     stopping.current = false;
     const run = () => {
-      const r = (shared ??= new Speech());
+      const r = new Speech();
       r.lang = lang === 'vi' ? 'vi-VN' : 'en-US';
       r.interimResults = true;
       r.continuous = true;
-      cur = '';
-      let heard = false; // this session got speech or text
-      let watch: ReturnType<typeof setTimeout> | undefined;
-      for (const n of ['start', 'audiostart', 'soundstart', 'speechstart', 'speechend', 'soundend', 'audioend', 'nomatch']) {
-        (r as unknown as Record<string, () => void>)[`on${n}`] = () => { if (n === 'speechstart') heard = true; log(n); };
-      }
+      let cur = '';
       r.onresult = e => {
-        heard = true;
-        log(`result${e.results.length}`);
         cur = Array.from(e.results).map(x => x[0].transcript).join(' ');
         setText(`${done} ${cur}`.trim());
       };
       r.onerror = e => {
-        log(`ERROR ${e.error}`);
-        clearTimeout(watch);
         if (e.error === 'no-speech' || e.error === 'aborted') return; // just silence: onend starts the next session
         rec.current = null; // mic blocked, no network...: stop for real
-        shared = null; // next time starts with a fresh object
         setState('idle');
         setError(e.error === 'not-allowed' || e.error === 'service-not-allowed' ? 'voice.denied' : 'voice.fail');
       };
       r.onend = () => {
-        log(rec.current === r ? 'end' : 'end(cancelled)');
-        clearTimeout(watch);
         if (rec.current !== r) return; // cancelled or failed
         done = `${done} ${cur}`.trim();
-        if (stopping.current) {
-          rec.current = null;
-          void send(done);
-        } else run();
+        if (stopping.current) void send(done);
+        else run();
       };
       rec.current = r;
-      try {
-        r.start();
-        // iOS can start a session that never hears anything (seen on the second note): drop it and start a fresh one
-        watch = setTimeout(() => {
-          if (rec.current !== r || heard || done || retries >= 3) return;
-          retries++;
-          log('heard nothing, new session');
-          rec.current = null;
-          shared = null;
-          r.abort();
-          run();
-        }, 3000);
-      } catch { // still stopping from the last note
-        rec.current = null;
-        shared = null;
-        setState('idle');
-        setError('voice.fail');
-      }
-    };
-    forceDone.current = () => { // a stuck session: use what was heard so far
-      const r = rec.current;
-      rec.current = null;
-      r?.abort();
-      void send(`${done} ${cur}`.trim());
+      r.start();
     };
     setError(null);
     setText('');
@@ -121,16 +75,10 @@ export function useVoiceInput(handle: Handler) {
     run();
   }
 
-  // abort() instead of stop(): on iOS the next note heard nothing after a graceful stop. The text heard so far is used.
-  function finish() {
-    stopping.current = true;
-    forceDone.current?.();
-  }
-
   function cancel() {
     const r = rec.current;
     rec.current = null;
-    r?.abort();
+    r?.stop();
     setState('idle');
   }
 
@@ -143,7 +91,6 @@ export function useVoiceInput(handle: Handler) {
           <div role="alertdialog" aria-modal="true" className="w-full max-w-[320px] rounded-2xl bg-white p-5 shadow-xl space-y-3" onClick={e => e.stopPropagation()}>
             <p className="text-base font-extrabold text-red-500">{t(error)}</p>
             {text && <p className="text-sm text-textMuted italic [overflow-wrap:anywhere]">"{text}"</p>}
-            <p className="text-[10px] leading-tight font-mono text-textMuted [overflow-wrap:anywhere]">{dbg}</p>
             <div className="flex gap-2">
               <button onClick={() => setError(null)} className="flex-1 py-2.5 rounded-xl border-2 border-peachLight text-sm font-bold text-app-text active:bg-cream">{t('voice.close')}</button>
               {error === 'voice.denied' ? ( // iOS only asks again after a reload
@@ -168,11 +115,10 @@ export function useVoiceInput(handle: Handler) {
             </div>
             <p className="text-base font-extrabold text-app-text">{t(listening ? 'voice.listening' : 'voice.thinking')}</p>
             <p className="min-h-10 text-sm text-textMuted italic [overflow-wrap:anywhere]">{text && `"${text}"`}</p>
-            <p className="text-[10px] leading-tight text-left font-mono text-textMuted [overflow-wrap:anywhere]">{dbg}</p>
             {listening && (
               <div className="flex gap-2">
                 <button onClick={cancel} className="flex-1 py-2.5 rounded-xl border-2 border-peachLight text-sm font-bold text-app-text active:bg-cream">{t('confirm.cancel')}</button>
-                <button onClick={finish} className="flex-1 py-2.5 rounded-xl bg-peach text-sm font-bold text-white active:opacity-80">{t('voice.done')}</button>
+                <button onClick={() => { stopping.current = true; rec.current?.stop(); }} className="flex-1 py-2.5 rounded-xl bg-peach text-sm font-bold text-white active:opacity-80">{t('voice.done')}</button>
               </div>
             )}
           </div>
