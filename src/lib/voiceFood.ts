@@ -84,7 +84,11 @@ const keyOf = (group: 'food' | 'allergy', keys: readonly string[]) => {
   for (const k of keys) for (const n of [k, translate('vi', `fd.${group}.${k}` as UiKey), translate('en', `fd.${group}.${k}` as UiKey)]) byName.set(plain(n), k);
   return (x: string) => byName.get(plain(x)) ?? x;
 };
-const foodKey = keyOf('food', FOODS), allergyKey = keyOf('allergy', ALLERGIES);
+// a custom food reads like a name: "giò heo" -> "Giò Heo"
+const titleCase = (x: string) => x.toLocaleLowerCase('vi').replace(/(^|\s)\S/g, c => c.toLocaleUpperCase('vi'));
+const toKey = keyOf('food', FOODS);
+const foodKey = (x: string) => { const k = toKey(x); return (FOODS as readonly string[]).includes(k) ? k : titleCase(k); };
+const allergyKey = keyOf('allergy', ALLERGIES);
 const only = <T extends string>(v: unknown, allowed: readonly T[]) => strs(v).filter((x): x is T => (allowed as readonly string[]).includes(x));
 
 function milk(v: unknown): MilkFields {

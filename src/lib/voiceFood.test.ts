@@ -20,7 +20,7 @@ describe('parseVoiceFood', () => {
       day: {
         momMl: 120, momWays: ['bottle'], moreMilks: [{ formulaMl: 90 }],
         night: { momMl: 60 },
-        solids: [{ foods: ['porridge', 'cháo bí đỏ'], portion: '2 muỗng' }, { foods: ['banana'], snack: true }],
+        solids: [{ foods: ['porridge', 'Cháo Bí Đỏ'], portion: '2 muỗng' }, { foods: ['banana'], snack: true }],
         poop: { times: 2, colors: ['yellow'], textures: ['soft'] },
         allergy: ['rash'],
       },
@@ -89,7 +89,7 @@ describe('older saved entries survive the round trip', () => {
     expect(out.night).toEqual({ momMl: 50 });
     expect(out.poop).toEqual({ times: 1, note: 'ok' });
     expect(out.allergy).toEqual(['rash']);
-    expect(out.solids).toEqual(solidsOf(old));
+    expect(out.solids).toEqual([{ foods: ['Thịt Kho'], snack: true }]); // same food, only the case of a free-text name changes
   });
 
   it('an empty entry stays empty', () => {
@@ -117,7 +117,7 @@ describe('foodVoicePrompt', () => {
   it('a display name from Gemini becomes the key, so the chip shows', () => {
     const day = (foods: string[], allergy: string[] = []) => parseVoiceFood(JSON.stringify({ date: '2026-11-04', day: { solids: [{ foods }], allergy } }))!.day!;
     expect(day(['cơm nát', 'Cơm Nát', 'Táo', 'banana', 'com nat']).solids![0].foods).toEqual(['softRice', 'apple', 'banana']);
-    expect(day(['cá hồi']).solids![0].foods).toEqual(['cá hồi']); // no chip: stays free text
+    expect(day(['cá hồi', 'giò heo', 'GIÒ HEO']).solids![0].foods).toEqual(['Cá Hồi', 'Giò Heo']); // no chip: free text, in Title Case
     expect(day(['rice'], ['nổi mẩn', 'Ho', 'đau bụng']).allergy).toEqual(['rash', 'cough', 'đau bụng']);
   });
 
