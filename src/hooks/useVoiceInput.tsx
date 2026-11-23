@@ -153,7 +153,7 @@ export function useVoiceInput(handle: Handler, hint?: () => string) {
                 <Loader2 size={28} strokeWidth={2.5} className="animate-spin" />
               </span>
             )}
-            <p className="text-base font-extrabold text-app-text">{t(listening ? 'voice.listening' : 'voice.thinking')}</p>
+            <p className="text-base font-extrabold text-app-text">{t(listening ? 'voice.listening' : text ? 'voice.thinking' : 'voice.transcribing')}</p>
             <p className="min-h-10 text-sm text-textMuted italic [overflow-wrap:anywhere]">{text ? `"${text}"` : listening && t('voice.hint')}</p>
             {listening && (
               <div className="flex gap-2">

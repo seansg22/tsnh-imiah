@@ -92,6 +92,12 @@ describe('older saved entries survive the round trip', () => {
     expect(out.solids).toEqual([{ foods: ['Thịt Kho'], snack: true }]); // same food, only the case of a free-text name changes
   });
 
+  it('foods already saved keep their spelling, new free-text foods get Title Case', () => {
+    const e: FoodEntry = { id: 'x', date: '2026-11-23', solids: [{ foods: ['cá hồi', 'Súp lơ', 'softRice'] }] };
+    const text = JSON.stringify({ date: e.date, day: { solids: [{ foods: ['Cá hồi', 'súp lơ', 'com nat', 'giò heo'] }] } });
+    expect(parseVoiceFood(text, [e])!.day!.solids![0].foods).toEqual(['cá hồi', 'Súp lơ', 'softRice', 'Giò Heo']);
+  });
+
   it('an empty entry stays empty', () => {
     expect(roundTrip({ id: 'x', date: '2026-11-10' }).out).toEqual({});
   });

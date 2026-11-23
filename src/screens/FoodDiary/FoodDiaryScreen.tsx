@@ -99,7 +99,7 @@ export function FoodDiaryScreen() {
           <FoodDiaryForm onSave={handleSave} onCancel={handleCancel} />
         ) : (
           <div className="flex items-start gap-2">
-          <VoiceFill hint={() => foodVoiceHint(lang, entries)} prompt={said => { const today = new Date().toISOString().split('T')[0]; return foodVoicePrompt(voiceDate(said, today), today, entries, lang); }} parse={parseVoiceFood} onResult={handleVoice} startRef={micRef} />
+          <VoiceFill hint={() => foodVoiceHint(lang, entries)} prompt={said => { const today = new Date().toISOString().split('T')[0]; return foodVoicePrompt(voiceDate(said, today), today, entries, lang); }} parse={text => parseVoiceFood(text, entries)} onResult={handleVoice} startRef={micRef} />
           {pending && <VoiceConfirm old={pending.old} merged={pending.merged} said={pending.said} del={pending.del} onRetry={retryVoice} onConfirm={confirmVoice} onCancel={() => setPending(null)} />}
           <button
             onClick={() => { remember(); setShowForm(true); }}

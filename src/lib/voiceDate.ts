@@ -36,6 +36,7 @@ export function voiceDate(said: string, today: string): string {
   const t = said.normalize('NFC').toLowerCase().replace(/\s+/g, ' ');
   const [Y, M, D] = today.split('-').map(Number);
   const back = (n: number) => iso(new Date(Date.UTC(Y, M - 1, D - n)));
+  const ahead = (n: number) => iso(new Date(Date.UTC(Y, M - 1, D + n)));
   const year = (s?: string) => (!s ? Y : s.length === 2 ? 2000 + Number(s) : Number(s));
 
   // 1. a written date. Each pattern gives the [year, month, day] guesses to try, in order.
@@ -79,6 +80,9 @@ export function voiceDate(said: string, today: string): string {
   if (ew) return weekday(EN_DAY.indexOf(ew[1]));
 
   // 3. a number of days or weeks back. "3 ngày rồi" (it has been 3 days) is not one.
+  // the days ahead: the screen then says the day has not come yet
+  if (/ngày kia|day after tomorrow/.test(t)) return ahead(2);
+  if (/(?:ngày|hôm|sáng|trưa|chiều|tối|đêm)\s*mai\b|tomorrow/.test(t)) return ahead(1);
   if (/hôm kia|bữa kia|day before yesterday/.test(t)) return back(2);
   if (/(?:hôm|bữa|tối|chiều|sáng|trưa|đêm)\s*qua|hồi hôm(?!\s*(?:nay|kia))|yesterday|last night/.test(t)) return back(1);
   const ago = t.match(new RegExp(`(?:^|\\s)(${NUM})\\s*(?:of\\s+)?(?:(ngày|hôm)\\s*trước|(tuần)\\s*(?:trước|rồi)|(days?)\\s+(?:ago|back)|(weeks?)\\s+(?:ago|back))`))

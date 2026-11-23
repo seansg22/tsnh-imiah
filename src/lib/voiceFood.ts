@@ -87,7 +87,8 @@ const keyOf = (group: 'food' | 'allergy', keys: readonly string[]) => {
 // a custom food reads like a name: "giò heo" -> "Giò Heo"
 const titleCase = (x: string) => x.toLocaleLowerCase('vi').replace(/(^|\s)\S/g, c => c.toLocaleUpperCase('vi'));
 const toKey = keyOf('food', FOODS);
-const foodKey = (x: string) => { const k = toKey(x); return (FOODS as readonly string[]).includes(k) ? k : titleCase(k); };
+// a free-text food already saved on that day keeps its spelling, so the confirm screen does not mark it as changed
+const foodKey = (x: string, saved: Map<string, string>) => { const k = toKey(x); return (FOODS as readonly string[]).includes(k) ? k : saved.get(plain(k)) ?? titleCase(k); };
 const allergyKey = keyOf('allergy', ALLERGIES);
 const only = <T extends string>(v: unknown, allowed: readonly T[]) => strs(v).filter((x): x is T => (allowed as readonly string[]).includes(x));
 
@@ -102,12 +103,12 @@ function milk(v: unknown): MilkFields {
   };
 }
 
-function parseDay(d: Record<string, unknown>): VoiceDay {
+function parseDay(d: Record<string, unknown>, saved: Map<string, string>): VoiceDay {
   const dayMilks = (Array.isArray(d.dayMilks) ? d.dayMilks : []).map(milk).filter(m => Object.keys(m).length);
   const night = milk(d.night);
   const solids = (Array.isArray(d.solids) ? d.solids : []).flatMap((s): SolidMeal[] => {
     const r = (s && typeof s === 'object' ? s : {}) as Record<string, unknown>;
-    const foods = [...new Set(strs(r.foods).map(foodKey))];
+    const foods = [...new Set(strs(r.foods).map(x => foodKey(x, saved)))];
     const portion = typeof r.portion === 'string' ? r.portion.trim() : '';
     return foods.length ? [{ foods, ...(portion ? { portion } : {}), ...(r.snack === true ? { snack: true } : {}) }] : [];
   });
@@ -129,7 +130,7 @@ function parseDay(d: Record<string, unknown>): VoiceDay {
 
 // Gemini text -> a safe day. null if it is not usable JSON.
 // "day" must be there: an object (may be empty) or null. A missing "day" is a bad answer, not a delete.
-export function parseVoiceFood(text: string): VoiceFood | null {
+export function parseVoiceFood(text: string, entries: FoodEntry[] = []): VoiceFood | null {
   let o: Record<string, unknown>;
   try {
     const json = text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1); // drops ``` fences and chatter
@@ -139,8 +140,10 @@ export function parseVoiceFood(text: string): VoiceFood | null {
   }
   const { day, date } = o;
   if (day !== null && (typeof day !== 'object' || Array.isArray(day))) return null;
+  const entry = entries.find(e => e.date === date);
+  const saved = new Map((entry ? solidsOf(entry) : []).flatMap(m => m.foods).map(f => [plain(f), f] as const));
   return {
     ...(typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date) ? { date } : {}),
-    day: day === null ? null : parseDay(day as Record<string, unknown>),
+    day: day === null ? null : parseDay(day as Record<string, unknown>, saved),
   };
 }

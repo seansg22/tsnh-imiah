@@ -21,6 +21,7 @@ const cases: Record<string, [string, string][]> = {
     ['11/15', '2026-11-15'], ['ngày 5/6', '2026-06-05'],
   ],
   'vi: relative': [
+    ['ngày mai bé đi ị 5 lần', '2026-11-19'], ['sáng mai bé ăn cháo', '2026-11-19'], ['tomorrow she had porridge', '2026-11-19'], ['ngày kia bé ăn', '2026-11-20'],
     ['hôm qua bé ị 2 lần', '2026-11-17'], ['bữa qua bé ăn cháo', '2026-11-17'], ['tối qua bé bú 100', '2026-11-17'],
     ['đêm qua bé dậy bú', '2026-11-17'], ['hồi hôm bé ị', '2026-11-17'], ['hôm kia bé ăn cháo', '2026-11-16'],
     ['3 ngày trước bé ăn bơ', '2026-11-15'], ['ba ngày trước', '2026-11-15'], ['cách đây 4 ngày', '2026-11-14'],
