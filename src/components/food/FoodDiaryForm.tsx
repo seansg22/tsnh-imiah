@@ -159,10 +159,10 @@ function SolidBlock({ title, value, onChange, onRemove }: BlockProps) {
             className="flex max-w-full items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full border-2 border-dashed border-peachDark bg-gradient-to-r from-peachLight to-white text-xs font-bold text-peachDark [overflow-wrap:anywhere]"
           >
             <Sparkles size={12} strokeWidth={2.5} className="flex-shrink-0" />
-            {f}
+            {foodLabel(f)}
             <button
               type="button"
-              aria-label={`${t('fd.removeCustom')} ${f}`}
+              aria-label={`${t('fd.removeCustom')} ${foodLabel(f)}`}
               onClick={() => toggleFood(f)}
               className="flex-shrink-0 p-0.5 rounded-full hover:bg-peachDark/20 active:scale-90 transition"
             >

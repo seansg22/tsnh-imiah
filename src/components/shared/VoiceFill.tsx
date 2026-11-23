@@ -9,17 +9,18 @@ interface Props<T> {
   prompt: (said: string) => string; // system prompt that tells Gemini the JSON shape, built for each note so it can hold the day and its data
   parse: (text: string) => T | null;
   onResult: (data: T, said: string) => UiKey | void; // a UiKey is an error message to show in the popup
+  hint?: () => string; // words to expect, sent to the speech-to-text step
   startRef?: { current: (() => void) | null }; // lets the parent start a new recording, for "record again"
 }
 
 // Tap, talk, tap Done. Speech -> text (browser) -> JSON (Gemini) -> onResult.
-export function VoiceFill<T>({ prompt, parse, onResult, startRef }: Props<T>) {
+export function VoiceFill<T>({ prompt, parse, onResult, hint, startRef }: Props<T>) {
   const { t } = useLang();
   const { supported, start, modal } = useVoiceInput(async said => {
     const res = await callGemini(prompt(said), [{ role: 'user', parts: [{ text: said }] }]);
     const data = res && parse(res.text);
     return data ? onResult(data, said) : 'voice.fail';
-  });
+  }, hint);
   useEffect(() => { if (startRef) startRef.current = start; }); // every render, so it never holds an old state
   if (!supported) return null;
   return (

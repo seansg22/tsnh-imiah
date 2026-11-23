@@ -17,7 +17,7 @@ import type { LucideIcon } from 'lucide-react';
 import type { FoodEntry, MilkFields } from '../../types';
 import { VoiceConfirm } from '../../components/food/VoiceConfirm';
 import { VoiceFill } from '../../components/shared/VoiceFill';
-import { foodVoicePrompt, parseVoiceFood, type VoiceFood } from '../../lib/voiceFood';
+import { foodVoiceHint, foodVoicePrompt, parseVoiceFood, type VoiceFood } from '../../lib/voiceFood';
 import { voiceDate } from '../../lib/voiceDate';
 import { cardShadow } from '../../components/shared/cardStyle';
 
@@ -99,7 +99,7 @@ export function FoodDiaryScreen() {
           <FoodDiaryForm onSave={handleSave} onCancel={handleCancel} />
         ) : (
           <div className="flex items-start gap-2">
-          <VoiceFill prompt={said => { const today = new Date().toISOString().split('T')[0]; return foodVoicePrompt(voiceDate(said, today), today, entries); }} parse={parseVoiceFood} onResult={handleVoice} startRef={micRef} />
+          <VoiceFill hint={() => foodVoiceHint(lang, entries)} prompt={said => { const today = new Date().toISOString().split('T')[0]; return foodVoicePrompt(voiceDate(said, today), today, entries, lang); }} parse={parseVoiceFood} onResult={handleVoice} startRef={micRef} />
           {pending && <VoiceConfirm old={pending.old} merged={pending.merged} said={pending.said} del={pending.del} onRetry={retryVoice} onConfirm={confirmVoice} onCancel={() => setPending(null)} />}
           <button
             onClick={() => { remember(); setShowForm(true); }}

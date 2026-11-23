@@ -50,6 +50,8 @@ https://aistudio.google.com/u/1/api-keys?pli=1&project=gen-lang-client-004151541
 
 Login with: tson.regis@gmail.com
 
+Voice input: set `VITE_GROQ_API_KEY` (https://console.groq.com/keys). The mic button is hidden without it.
+
 Set `VITE_GEMINI_API_KEY` to one key, or multiple keys separated by commas.
 
 ### Open Router

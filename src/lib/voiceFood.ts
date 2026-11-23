@@ -2,6 +2,7 @@ import type { FoodEntry, MilkFields, PoopLog, SolidMeal } from '../types';
 import { solidsOf } from './solids';
 import { dayMilksOf, splitDayMilks } from './dayMilks';
 import { foldTimes } from './foodForm';
+import { translate, type UiKey } from '../i18n/ui';
 import { ALLERGIES, FOODS, POOP_COLORS, POOP_TEXTURES } from '../components/food/foodOptions';
 
 // Gemini gets the saved days and the note, and answers with the WHOLE new day. No edit rules on our side.
@@ -20,9 +21,29 @@ const dayJson = (e: FoodEntry) => ({
   ...(e.allergy?.length ? { allergy: e.allergy } : {}),
 });
 
-export const foodVoicePrompt = (date: string, today: string, entries: FoodEntry[] = []) => {
+// "apple = Táo / Apple": the key Gemini must answer with, then the names a speaker may use
+const options = (group: 'food' | 'allergy', keys: readonly string[]) =>
+  keys.map(k => `${k} = ${translate('vi', `fd.${group}.${k}` as UiKey)} / ${translate('en', `fd.${group}.${k}` as UiKey)}`).join('\n  ');
+
+// Spelling hint for Whisper (Groq "prompt" field): the words a food note is likely to hold.
+// Whisper only keeps the last ~224 tokens, so the most useful words go last: the app's foods, then foods this family already typed.
+const HINT_WORDS = {
+  vi: ['bữa phụ', 'ăn dặm', 'sữa mẹ', 'sữa công thức', 'bú bình', 'cữ sữa', 'đi ị', 'muỗng', 'ml'],
+  en: ['snack', 'breast milk', 'formula', 'bottle', 'poop', 'spoons', 'ml'],
+};
+export const foodVoiceHint = (lang: 'vi' | 'en', entries: FoodEntry[] = []) => {
+  const known = FOODS.map(k => translate(lang, `fd.food.${k}` as UiKey));
+  const mine = [...new Set(entries.flatMap(e => solidsOf(e).flatMap(m => m.foods)).filter(f => !(FOODS as readonly string[]).includes(f)))];
+  const words = [...HINT_WORDS[lang], ...known, ...mine.slice(-15)];
+  let text = words.join(', ');
+  while (text.length > 500 && words.length) text = words.splice(0, 1) && words.join(', '); // too long: drop from the front
+  return text;
+};
+
+export const foodVoicePrompt = (date: string, today: string, entries: FoodEntry[] = [], lang: 'vi' | 'en' = 'vi') => {
   const saved = entries.find(e => e.date === date);
   return `You update a baby's food diary from a short spoken note (Vietnamese or English, may have speech-to-text mistakes). The note can be tiny, like only one milk or only poop.
+The speaker's language is ${lang === 'vi' ? 'Vietnamese' : 'English'}.
 Today is ${today}. The note is about ${date}.
 Saved day ${date}: ${saved ? JSON.stringify(dayJson(saved)) : 'none'}
 Reply with ONE JSON object only, no markdown:
@@ -36,6 +57,7 @@ Reply with ONE JSON object only, no markdown:
  "allergy": string[]
 }
 Rules:
+- The note is speech-to-text, so words can be misheard (wrong accents, a similar-sounding word, numbers split or merged). If a word is close in sound to an option below or to a food already saved, use that option. Never invent a food, milk amount or meal the note does not hint at. If unsure, keep the speaker's words as they are.
 - Start from the saved day above (none = an empty day). Copy EVERYTHING the note does not talk about, unchanged and in the same order.
 - Adding ("thêm một cữ 500ml") = append a new item to dayMilks or solids. Fixing ("sửa lại", "nhầm", "đổi thành", "bữa thịt kho là bữa phụ") = change only that item. Deleting ("xóa", "bỏ", "remove") = leave that item out.
 - night and poop are ONE record per day. If the speaker adds to them, add up the numbers and join the lists. If they correct them, replace the value.
@@ -43,14 +65,26 @@ Rules:
 - One dayMilks item per separate daytime milk feed. Night milk goes in "night". Amounts are in ml.
 - momMl = mom's milk, formulaMl = formula milk. momWays: breast (direct) and/or bottle.
 - solids: one item per meal. snack = true for a snack (bữa phụ). portion is free text like "50 ml" or "2 muỗng".
-- foods: use these keys when the food matches: ${FOODS.join(', ')}. Otherwise write the food in the user's language.
+- foods: pick from the options below, answer with the key (left of "="). The speaker may say the Vietnamese or the English name. If NO option matches (e.g. salmon), customize: copy the speaker's own words, NEVER translate ("cá hồi" stays "cá hồi", never "salmon").
+  ${options('food', FOODS)}
+- Every free-text value (custom foods, portion, poop note, custom allergy) stays in the speaker's language (${lang === 'vi' ? 'Vietnamese' : 'English'}). Never translate.
 - poop colors only: ${Object.keys(POOP_COLORS).join(', ')}. textures only: ${POOP_TEXTURES.join(', ')}.
-- allergy: use these keys when they match: ${ALLERGIES.join(', ')}. Otherwise free text.
+- allergy: pick from the options below, answer with the key. If none matches, customize with the speaker's own words.
+  ${options('allergy', ALLERGIES)}
 - Ignore clock times, the diary has no time field.`;
 };
 
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) && v > 0 ? Math.round(v) : undefined);
 const strs = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.trim() !== '').map(x => x.trim()) : []);
+// "Cơm nát", "com nat" and "softRice" are the same food: ignore case, accents and extra spaces
+const plain = (x: string) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').toLowerCase().replace(/\s+/g, ' ').trim();
+// a name Gemini wrote instead of the key (either language) goes back to the key, so the form shows the chip. Anything else stays free text.
+const keyOf = (group: 'food' | 'allergy', keys: readonly string[]) => {
+  const byName = new Map<string, string>();
+  for (const k of keys) for (const n of [k, translate('vi', `fd.${group}.${k}` as UiKey), translate('en', `fd.${group}.${k}` as UiKey)]) byName.set(plain(n), k);
+  return (x: string) => byName.get(plain(x)) ?? x;
+};
+const foodKey = keyOf('food', FOODS), allergyKey = keyOf('allergy', ALLERGIES);
 const only = <T extends string>(v: unknown, allowed: readonly T[]) => strs(v).filter((x): x is T => (allowed as readonly string[]).includes(x));
 
 function milk(v: unknown): MilkFields {
@@ -69,7 +103,7 @@ function parseDay(d: Record<string, unknown>): VoiceDay {
   const night = milk(d.night);
   const solids = (Array.isArray(d.solids) ? d.solids : []).flatMap((s): SolidMeal[] => {
     const r = (s && typeof s === 'object' ? s : {}) as Record<string, unknown>;
-    const foods = strs(r.foods);
+    const foods = [...new Set(strs(r.foods).map(foodKey))];
     const portion = typeof r.portion === 'string' ? r.portion.trim() : '';
     return foods.length ? [{ foods, ...(portion ? { portion } : {}), ...(r.snack === true ? { snack: true } : {}) }] : [];
   });
@@ -79,7 +113,7 @@ function parseDay(d: Record<string, unknown>): VoiceDay {
   const textures = only(p.textures, POOP_TEXTURES);
   const note = typeof p.note === 'string' ? p.note.trim() : '';
   const poop: PoopLog = { ...(times ? { times } : {}), ...(colors.length ? { colors } : {}), ...(textures.length ? { textures } : {}), ...(note ? { note } : {}) };
-  const allergy = [...new Set(strs(d.allergy))];
+  const allergy = [...new Set(strs(d.allergy).map(allergyKey))];
   return {
     ...splitDayMilks(dayMilks),
     ...(Object.keys(night).length ? { night } : {}),

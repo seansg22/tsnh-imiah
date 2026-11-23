@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { foodVoicePrompt, parseVoiceFood } from './voiceFood';
+import { foodVoiceHint, foodVoicePrompt, parseVoiceFood } from './voiceFood';
 import { dayMilksOf } from './dayMilks';
 import { solidsOf } from './solids';
 import type { FoodEntry } from '../types';
@@ -106,5 +106,39 @@ describe('foodVoicePrompt', () => {
   });
   it('says none for a day with no note', () => {
     expect(foodVoicePrompt('2026-11-03', '2026-11-18', [])).toContain('Saved day 2026-11-03: none');
+  });
+
+  it('lists every food and allergy key with its Vietnamese and English name', () => {
+    const p = foodVoicePrompt('2026-11-04', '2026-11-23', []);
+    expect(p).toContain('apple = Táo / Apple');
+    expect(p).toContain('rash = Nổi mẩn / Rash');
+  });
+
+  it('a display name from Gemini becomes the key, so the chip shows', () => {
+    const day = (foods: string[], allergy: string[] = []) => parseVoiceFood(JSON.stringify({ date: '2026-11-04', day: { solids: [{ foods }], allergy } }))!.day!;
+    expect(day(['cơm nát', 'Cơm Nát', 'Táo', 'banana', 'com nat']).solids![0].foods).toEqual(['softRice', 'apple', 'banana']);
+    expect(day(['cá hồi']).solids![0].foods).toEqual(['cá hồi']); // no chip: stays free text
+    expect(day(['rice'], ['nổi mẩn', 'Ho', 'đau bụng']).allergy).toEqual(['rash', 'cough', 'đau bụng']);
+  });
+
+  it('tells Gemini the speaker language', () => {
+    expect(foodVoicePrompt('2026-11-04', '2026-11-23', [], 'vi')).toContain("The speaker's language is Vietnamese.");
+    expect(foodVoicePrompt('2026-11-04', '2026-11-23', [], 'en')).toContain("The speaker's language is English.");
+  });
+});
+
+describe('foodVoiceHint', () => {
+  it('has the app food names in the speaker language, then foods the family typed, and stays short', () => {
+    const e = { id: 'x', date: '2026-11-01', solids: [{ foods: ['cá hồi', 'apple'] }] } as FoodEntry;
+    const vi = foodVoiceHint('vi', [e]);
+    expect(vi).toContain('Cơm nát');
+    expect(vi.endsWith('cá hồi')).toBe(true); // last = what Whisper keeps for sure
+    expect(vi).not.toContain('apple'); // a key is already in the list as "Táo"
+    expect(foodVoiceHint('en')).toContain('Soft rice');
+    expect(foodVoiceHint('vi', Array.from({ length: 60 }, (_, i) => ({ id: `${i}`, date: `2026-01-${i}`, solids: [{ foods: [`món số ${i}`] }] }) as FoodEntry)).length).toBeLessThanOrEqual(500);
+  });
+
+  it('warns Gemini that the note is speech-to-text', () => {
+    expect(foodVoicePrompt('2026-11-04', '2026-11-23', [])).toContain('words can be misheard');
   });
 });
